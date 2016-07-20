@@ -3,13 +3,14 @@ services:
   # Cluster Master will contain all roles, including Cluster Master,
   # SHC Deployer, License Master, Deployment Server
   cluster-master:
-    build: ./cluster-master/
+    build: ./node/
     container_name: cluster-master
     hostname: cluster-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - INIT_CLUSTER_REPLICATION_FACTOR=1
       - INIT_CLUSTER_SEARCH_FACTOR=1
+      - SPLUNK_ROLES=cluster_master
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -31,12 +32,13 @@ services:
 
   # SHC Member
   shc-member:
-    build: ./shc-member/
+    build: ./node/
     depends_on:
       - cluster-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - INIT_SHC_REPLICATION_FACTOR=3
+      - SPLUNK_ROLES=shc_member
     labels:
       splunk.cluster: "shc-member"
     networks:
@@ -52,11 +54,12 @@ services:
 
   # Cluster Slave
   cluster-member:
-    build: ./cluster-member/
+    build: ./node/
     depends_on:
       - cluster-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_ROLES=cluster_slave
     labels:
       splunk.cluster: "cluster-member"
     networks:

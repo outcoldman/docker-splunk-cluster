@@ -2,22 +2,11 @@ import os
 import subprocess
 import sys
 import shutil
-import errno
 import glob
 
 import splunk.clilib.cli_common
 
-def mkdir_p(path):
-    """
-    mkdir -p implementation, ref http://stackoverflow.com/a/600612/421143
-    """
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+import init_helpers
 
 
 print "Initializing " + os.environ['HOSTNAME'] + " as Cluster Master"
@@ -78,21 +67,9 @@ shclustering_stanza["pass4SymmKey"] = "example_shc_secret"
 
 splunk.clilib.cli_common.writeConfFile(server_conf_file, server_conf)
 
-mkdir_p(os.path.join(os.environ['SPLUNK_HOME'], "etc", "master-apps"))
-
-shutil.copytree(
-    os.path.join("/opt", "splunk-deployment", "etc", "master-apps", "cluster_deployment"),
-    os.path.join(os.environ['SPLUNK_HOME'], "etc", "master-apps", "cluster_deployment"))
-
-mkdir_p(os.path.join(os.environ['SPLUNK_HOME'], "etc", "shcluster", "apps"))
-
-shutil.copytree(
-    os.path.join("/opt", "splunk-deployment", "etc", "shcluster", "apps", "cluster_deployment"),
-    os.path.join(os.environ['SPLUNK_HOME'], "etc", "shcluster", "apps", "cluster_deployment"))
-
-shutil.copyfile(
-    os.path.join("/opt", "splunk-deployment", "etc", "system", "local", "outputs.conf"),
-    os.path.join(os.environ['SPLUNK_HOME'], "etc", "system", "local", "outputs.conf"))
+init_helpers.copy_etc_tree(
+    os.path.join("/opt", "splunk-deployment", "cluster-master", "etc"),
+    os.path.join(os.environ['SPLUNK_HOME'], "etc"))
 
 sys.stdout.flush()
 sys.stderr.flush()
