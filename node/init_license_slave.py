@@ -8,16 +8,16 @@ def configurations():
         "components": {
             "kvstore": False,
             "web": False,
-            "indexing": True
+            "indexing": False
         },
         "dependencies": [
-            ("https://cluster-master:8089", "cluster_master")
+            ("https://license-master:8089", "license_master")
         ]
     }
 
 
 def substitution():
     return {
-        "@CLUSTERING_PASS_4_SYMM_KEY@": "example_cluster_secret",
-        "@CLUSTERING_CLUSTER_MASTER@": "https://cluster-master:8089",
+        "@GENERAL_PASS_4_SYMM_KEY@": "example_general_secret",
+        "@LICENSE_MASTER@": "https://license-master:8089"
     }

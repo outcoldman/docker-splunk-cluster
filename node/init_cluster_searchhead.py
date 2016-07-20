@@ -6,9 +6,9 @@ import init_helpers
 def configurations():
     return {
         "components": {
-            "kvstore": False,
-            "web": False,
-            "indexing": True
+            "kvstore": True,
+            "web": True,
+            "indexing": False
         },
         "dependencies": [
             ("https://cluster-master:8089", "cluster_master")

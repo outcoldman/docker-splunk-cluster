@@ -8,16 +8,17 @@ def configurations():
         "components": {
             "kvstore": False,
             "web": False,
-            "indexing": True
+            "indexing": False
         },
+        # shc_deployer will be set only after first deploy, so do not depend on this role
         "dependencies": [
-            ("https://cluster-master:8089", "cluster_master")
+            ("https://shc-deployer:8089", "")
         ]
     }
 
 
 def substitution():
     return {
-        "@CLUSTERING_PASS_4_SYMM_KEY@": "example_cluster_secret",
-        "@CLUSTERING_CLUSTER_MASTER@": "https://cluster-master:8089",
+        "@SHCLUSTERING_SHCDEPLOYER@": "https://shc-deployer:8089"
     }
+

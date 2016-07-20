@@ -1,16 +1,39 @@
 version: '2'
 services:
-  # Cluster Master will contain all roles, including Cluster Master,
-  # SHC Deployer, License Master, Deployment Server
+
+  license-master:
+    build: ./node/
+    container_name: license-master
+    hostname: license-master
+    environment: 
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_ROLES=license_master
+    labels:
+      splunk.cluster: "license-master"
+    networks:
+      splunk:
+        aliases:
+          - license-master
+    ports:
+      - 8000
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "5"
+
   cluster-master:
     build: ./node/
     container_name: cluster-master
     hostname: cluster-master
+    depends_on:
+      - license-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - INIT_CLUSTER_REPLICATION_FACTOR=1
       - INIT_CLUSTER_SEARCH_FACTOR=1
-      - SPLUNK_ROLES=cluster_master
+      - SPLUNK_ROLES=cluster_master,license_slave
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -21,7 +44,6 @@ services:
           - shc-deployer
           - deployment-server
     ports:
-      - 8089
       - 8000
     restart: always
     logging:
@@ -30,15 +52,37 @@ services:
         max-size: "1m"
         max-file: "5"
 
-  # SHC Member
+  shc-deployer:
+    build: ./node/
+    container_name: shc-deployer
+    hostname: shc-deployer
+    environment: 
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_ROLES=shc_deployer
+    labels:
+      splunk.cluster: "shc-deployer"
+    networks:
+      splunk:
+        aliases:
+          - shc-deployer
+    ports:
+      - 8000
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "5"
+
   shc-member:
     build: ./node/
     depends_on:
-      - cluster-master
+      - shc-deployer
+      - license-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - INIT_SHC_REPLICATION_FACTOR=3
-      - SPLUNK_ROLES=shc_member
+      - SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead
     labels:
       splunk.cluster: "shc-member"
     networks:
@@ -52,16 +96,16 @@ services:
         max-size: "1m"
         max-file: "5"
 
-  # Cluster Slave
-  cluster-member:
+  cluster-slave:
     build: ./node/
     depends_on:
       - cluster-master
+      - license-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=cluster_slave
+      - SPLUNK_ROLES=cluster_slave,license_slave
     labels:
-      splunk.cluster: "cluster-member"
+      splunk.cluster: "cluster-slave"
     networks:
       - splunk
     restart: always

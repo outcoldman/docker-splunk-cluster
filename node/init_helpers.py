@@ -74,6 +74,16 @@ def splunk_clean_kvstore():
         "-f"
     ])
 
+def splunk_clean_index():
+    """
+    Clean local indexes
+    """
+    splunk_execute([
+        "clean",
+        "eventdata",
+        "-f"
+    ])
+
 def splunk_execute(args):
     """
     Execute splunk with arguments
@@ -96,7 +106,7 @@ def wait_dependency(uri, server_role):
             response = requests.get(uri + "/services/server/info?output_mode=json", verify=False)
             if response.status_code == 200:
                 server_roles = response.json()["entry"][0]["content"]["server_roles"]
-                if server_role in server_roles:
+                if not server_role or server_role in server_roles:
                     return
         except requests.exceptions.RequestException:
             pass

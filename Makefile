@@ -84,7 +84,7 @@ swarm-up:
 
 local-up:
 	docker-compose up -d
-	docker-compose scale cluster-member=4
+	docker-compose scale cluster-slave=4
 	docker-compose scale shc-member=3
 	@echo "Use 'docker-compose logs -f cluster-master' to wait for Initialized cluster-master as Cluster Master"
 
