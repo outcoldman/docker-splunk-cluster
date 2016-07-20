@@ -34,10 +34,10 @@ def copy_etc_tree(src, dst, subs=None):
         srcname = os.path.join(src, name)
         dstname = os.path.join(dst, name)
         if os.path.isdir(srcname):
-            copy_etc_tree(srcname, dstname)
+            copy_etc_tree(srcname, dstname, subs)
         else:
-            filename, ext = os.path.splitext(name)
-            if os.path.exists(dstname) and ext == ".conf":
+            _, ext = os.path.splitext(name)
+            if ext == ".conf":
                 src_conf = splunk.clilib.cli_common.readConfFile(srcname)
                 dst_conf = splunk.clilib.cli_common.readConfFile(dstname) if os.path.exists(dstname) else {}
                 for stanza, values in src_conf.iteritems():
@@ -51,19 +51,19 @@ def copy_etc_tree(src, dst, subs=None):
             else:
                 shutil.copyfile(srcname, dstname)
 
-def splunk_stop()
+def splunk_stop():
     """
     Stop splunk
     """
     splunk_execute(["stop"])
 
-def splunk_start()
+def splunk_start():
     """
     Start splunk
     """
     splunk_execute(["start"])
 
-def splunk_clean_kvstore()
+def splunk_clean_kvstore():
     """
     Clean local kvstore
     """
@@ -101,4 +101,5 @@ def wait_dependency(uri, server_role):
         except requests.exceptions.RequestException:
             pass
         time.sleep(1)
-    # TODO: raise exception
+    print "Failed to connect to " + uri + " and check server role " + server_role
+    exit(1)
