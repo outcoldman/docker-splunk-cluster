@@ -90,6 +90,10 @@ shutil.copytree(
     os.path.join("/opt", "splunk-deployment", "etc", "shcluster", "apps", "cluster_deployment"),
     os.path.join(os.environ['SPLUNK_HOME'], "etc", "shcluster", "apps", "cluster_deployment"))
 
+shutil.copyfile(
+    os.path.join("/opt", "splunk-deployment", "etc", "system", "local", "outputs.conf"),
+    os.path.join(os.environ['SPLUNK_HOME'], "etc", "system", "local", "outputs.conf"))
+
 sys.stdout.flush()
 sys.stderr.flush()
 

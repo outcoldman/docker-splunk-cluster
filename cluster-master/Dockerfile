@@ -1,6 +1,6 @@
 FROM outcoldman/splunk:6.4.2
 
-MAINTAINER Denis Gladkikh <docker-splunk@denis.gladkikh.email>
+MAINTAINER Denis Gladkikh <docker-splunk-cluster@denis.gladkikh.email>
 
 ADD init.py /opt/splunk-deployment/
 ADD etc /opt/splunk-deployment/etc

@@ -63,6 +63,17 @@ kvstore_stanza["disabled"] = "true"
 
 splunk.clilib.cli_common.writeConfFile(server_conf_file, server_conf)
 
+# No need to keep web server on indexers
+subprocess.check_call(
+    [
+        splunk_bin,
+        "disable",
+        "webserver"
+    ])
+
+sys.stdout.flush()
+sys.stderr.flush()
+
 # Stop
 subprocess.check_call(
     [
