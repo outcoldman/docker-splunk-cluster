@@ -22,6 +22,7 @@ def mkdir_p(path):
         else:
             raise
 
+
 def copy_etc_tree(src, dst, subs=None):
     """
     Smart copy files in etc folder.
@@ -51,17 +52,31 @@ def copy_etc_tree(src, dst, subs=None):
             else:
                 shutil.copyfile(srcname, dstname)
 
+
 def splunk_stop():
     """
     Stop splunk
     """
     splunk_execute(["stop"])
 
+
 def splunk_start():
     """
     Start splunk
     """
     splunk_execute(["start"])
+
+
+def splunk_clean_all():
+    """
+    Clean local data
+    """
+    splunk_execute([
+        "clean",
+        "all",
+        "-f"
+    ])
+
 
 def splunk_clean_kvstore():
     """
@@ -74,6 +89,7 @@ def splunk_clean_kvstore():
         "-f"
     ])
 
+
 def splunk_clean_index():
     """
     Clean local indexes
@@ -83,6 +99,7 @@ def splunk_clean_index():
         "eventdata",
         "-f"
     ])
+
 
 def splunk_execute(args):
     """
@@ -96,6 +113,7 @@ def splunk_execute(args):
     sys.stdout.flush()
     sys.stderr.flush()
 
+
 def wait_dependency(uri, server_role):
     """
     Wait 5 minutes for dependency
@@ -108,8 +126,36 @@ def wait_dependency(uri, server_role):
                 server_roles = response.json()["entry"][0]["content"]["server_roles"]
                 if not server_role or server_role in server_roles:
                     return
+                else:
+                    print "Waiting for " + server_role + " in " + uri + " got " + ", ".join(server_roles) + "."
+            else:
+                print "Waiting for "+ server_role + " in " + uri + "."
         except requests.exceptions.RequestException:
             pass
         time.sleep(1)
     print "Failed to connect to " + uri + " and check server role " + server_role
+    exit(1)
+
+
+def wait_local():
+    """
+    Wait 5 minutes for local node.
+    KVStore is usually last of the initialization process. When it is ready, whole node is functional
+    """
+    for x in xrange(1, 300):
+        try:
+            # This url does not require authentication, ignore certificate
+            response = requests.get("https://localhost:8089/services/server/info?output_mode=json", verify=False)
+            if response.status_code == 200:
+                kvstore_status = response.json()["entry"][0]["content"]["kvStoreStatus"]
+                if kvstore_status == "ready":
+                    return
+                else:
+                    print "Waiting for local node to be ready, KVStore status is " + kvstore_status + ", waiting for ready."
+            else:
+                print "Waiting for local node to be ready."
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(1)
+    print "Failed to connect to local node."
     exit(1)

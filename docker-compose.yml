@@ -40,9 +40,6 @@ services:
       splunk:
         aliases:
           - cluster-master
-          - license-master
-          - shc-deployer
-          - deployment-server
     ports:
       - 8000
     restart: always

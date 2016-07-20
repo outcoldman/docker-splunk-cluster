@@ -31,6 +31,8 @@ def main():
     if roles:
         print "Initializing " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'..."
 
+        init_helpers.wait_local()
+
         for role in roles:
             module = modules.get(role.upper())
             if module is None:

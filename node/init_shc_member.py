@@ -18,5 +18,5 @@ def substitution():
         "@SHCLUSTERING_PASS_4_SYMM_KEY@": "example_shc_secret",
         "@SHCLUSTERING_SHCDEPLOYER@": "https://cluster-master:8089",
         "@SHCLUSTERING_MGMT_URI@": "https://%s:8089" % os.environ['HOSTNAME'],
-        "@SHCLUSTERING_REPLICATION_FACTOR": os.environ.get("INIT_SHC_REPLICATION_FACTOR", "3"),
+        "@SHCLUSTERING_REPLICATION_FACTOR@": os.environ.get("INIT_SHC_REPLICATION_FACTOR", "3"),
     }
