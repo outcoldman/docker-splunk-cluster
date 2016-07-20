@@ -15,9 +15,9 @@ def configurations():
 
 def substitution():
     return {
-        "@CLUSTERING_PASS_4_SYMM_KEY@": "example_cluster_secret",
-        "@CLUSTERING_REPLICATION_FACTOR@": "1",
-        "@CLUSTERING_SEARCH_FACTOR@": "1",
-        "@INDEX_DISCOVERY_PASS_4_SYMM_KEY@": "example_index_discovery_secret",
-        "@SHCLUSTERING_PASS_4_SYMM_KEY@": "example_shc_secret"
+        "@CLUSTERING_PASS_4_SYMM_KEY@": os.environ.get("INIT_CLUSTERING_PASS_4_SYMM_KEY", "clustering-changeme"),
+        "@CLUSTERING_REPLICATION_FACTOR@": os.environ.get("INIT_CLUSTERING_REPLICATION_FACTOR", "1"),
+        "@CLUSTERING_SEARCH_FACTOR@": os.environ.get("INIT_CLUSTERING_SEARCH_FACTOR", "1"),
+        "@CLUSTERING_CLUSTER_LABEL@": os.environ.get("INIT_CLUSTERING_CLUSTER_LABEL", "cluster1"),
+        "@INDEX_DISCOVERY_PASS_4_SYMM_KEY@": os.environ.get("INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY", "indexdiscovery-changeme")
     }

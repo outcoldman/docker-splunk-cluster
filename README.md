@@ -42,9 +42,7 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 
 ## TODO:
 
-- [ ] Secret storage for getting secrets (currently everything is in plain text)
-- [ ] Allow to configure few things using Environment Variables
-- [ ] Requirement for License should be optional (so it will be easier to try)
+- [ ] Secret storage for getting secrets (currently everything is in plain text from env variables)
 
 ## Bootstrap a captain example
 

@@ -29,5 +29,5 @@ def configurations():
 
 def substitution():
     return {
-        "@GENERAL_PASS_4_SYMM_KEY@": "example_general_secret"
+        "@GENERAL_PASS_4_SYMM_KEY@": os.environ.get("INIT_GENERAL_PASS_4_SYMM_KEY", "general-changeme")
     }

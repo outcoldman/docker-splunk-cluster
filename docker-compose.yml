@@ -8,6 +8,7 @@ services:
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=license_master
+      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
     labels:
       splunk.cluster: "license-master"
     networks:
@@ -31,9 +32,14 @@ services:
       - license-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - INIT_CLUSTER_REPLICATION_FACTOR=1
-      - INIT_CLUSTER_SEARCH_FACTOR=1
       - SPLUNK_ROLES=cluster_master,license_slave
+      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
+      - INIT_CLUSTERING_REPLICATION_FACTOR=1
+      - INIT_CLUSTERING_SEARCH_FACTOR=1
+      - INIT_CLUSTERING_CLUSTER_LABEL=cluster1
+      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
+      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
+      - INIT_LICENSE_MASTER=https://license-master:8089
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -56,6 +62,7 @@ services:
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=shc_deployer
+      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
     labels:
       splunk.cluster: "shc-deployer"
     networks:
@@ -76,10 +83,18 @@ services:
     depends_on:
       - shc-deployer
       - license-master
+      - cluster-master
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - INIT_SHC_REPLICATION_FACTOR=3
       - SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead
+      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
+      - INIT_SHCLUSTERING_SHCDEPLOYER=https://shc-deployer:8089
+      - INIT_SHCLUSTERING_REPLICATION_FACTOR=3
+      - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster1
+      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
+      - INIT_LICENSE_MASTER=https://license-master:8089
+      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
+      - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
     labels:
       splunk.cluster: "shc-member"
     networks:
@@ -101,6 +116,10 @@ services:
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=cluster_slave,license_slave
+      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
+      - INIT_LICENSE_MASTER=https://license-master:8089
+      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
+      - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
     labels:
       splunk.cluster: "cluster-slave"
     networks:

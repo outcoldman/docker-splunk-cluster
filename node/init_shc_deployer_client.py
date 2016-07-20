@@ -19,6 +19,6 @@ def configurations():
 
 def substitution():
     return {
-        "@SHCLUSTERING_SHCDEPLOYER@": "https://shc-deployer:8089"
+        "@SHCLUSTERING_SHCDEPLOYER@": os.environ.get("INIT_SHCLUSTERING_SHCDEPLOYER", "https://shc-deployer:8089")
     }
 

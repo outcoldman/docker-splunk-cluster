@@ -18,6 +18,6 @@ def configurations():
 
 def substitution():
     return {
-        "@CLUSTERING_PASS_4_SYMM_KEY@": "example_cluster_secret",
-        "@CLUSTERING_CLUSTER_MASTER@": "https://cluster-master:8089",
+        "@CLUSTERING_PASS_4_SYMM_KEY@": os.environ.get("INIT_CLUSTERING_PASS_4_SYMM_KEY", "clustering-changeme"),
+        "@CLUSTERING_CLUSTER_MASTER@": os.environ.get("INIT_CLUSTERING_CLUSTER_MASTER", "https://cluster-master:8089")
     }

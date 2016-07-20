@@ -18,6 +18,6 @@ def configurations():
 
 def substitution():
     return {
-        "@GENERAL_PASS_4_SYMM_KEY@": "example_general_secret",
-        "@LICENSE_MASTER@": "https://license-master:8089"
+        "@GENERAL_PASS_4_SYMM_KEY@": os.environ.get("INIT_GENERAL_PASS_4_SYMM_KEY", "general-changeme"),
+        "@LICENSE_MASTER@": os.environ.get("INIT_LICENSE_MASTER", "https://license-master:8089")
     }
