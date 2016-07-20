@@ -86,8 +86,8 @@ def main():
                 os.path.join(os.environ['SPLUNK_HOME'], "etc"),
                 {
                     # TODO - make as parameters
-                    "@INDEX_DISCOVERY_MASTER_URI@": "https://cluster-master:8089",
-                    "@INDEX_DISCOVERY_PASS_4_SYMM_KEY@": "example_index_discovery_secret"
+                    "@INDEX_DISCOVERY_MASTER_URI@": os.environ.get("INIT_INDEX_DISCOVERY_MASTER_URI", "https://cluster-master:8089"),
+                    "@INDEX_DISCOVERY_PASS_4_SYMM_KEY@": os.environ.get("INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY", "indexdiscovery-changeme")
                 }
             )
             init_helpers.splunk_clean_index()
