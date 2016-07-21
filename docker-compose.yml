@@ -5,12 +5,18 @@ services:
     build: ./node/
     container_name: license-master
     hostname: license-master
+    depends_on:
+      - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=license_master
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
     labels:
       splunk.cluster: "license-master"
     networks:
@@ -32,6 +38,7 @@ services:
     hostname: cluster-master
     depends_on:
       - license-master
+      - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=cluster_master,license_slave
@@ -43,6 +50,10 @@ services:
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -62,12 +73,18 @@ services:
     build: ./node/
     container_name: shc-deployer
     hostname: shc-deployer
+    depends_on:
+      - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=shc_deployer
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
     labels:
       splunk.cluster: "shc-deployer"
     networks:
@@ -89,6 +106,7 @@ services:
       - shc-deployer
       - license-master
       - cluster-master
+      - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead
@@ -102,6 +120,10 @@ services:
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
     labels:
       splunk.cluster: "shc-member"
     networks:
@@ -120,6 +142,7 @@ services:
     depends_on:
       - cluster-master
       - license-master
+      - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=cluster_slave,license_slave
@@ -127,6 +150,10 @@ services:
       - INIT_LICENSE_MASTER=https://license-master:8089
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
     labels:
       splunk.cluster: "cluster-slave"
     networks:
@@ -145,6 +172,7 @@ services:
     depends_on:
       - license-master
       - cluster-master
+      - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=license_slave,cluster_searchhead
@@ -154,6 +182,10 @@ services:
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
     labels:
       splunk.cluster: "dmc"
     networks:
@@ -163,6 +195,33 @@ services:
     ports:
       - 8000
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "5"
+
+  consul:
+    image: consul:v0.6.4
+    container_name: consul
+    hostname: consul
+    restart: always
+    networks:
+      splunk:
+        aliases:
+          - consul
+    command:
+      - agent
+      - -bootstrap
+      - -data-dir=/consul/data
+      - -dc=dc
+      - -domain=splunk
+      - -encrypt=PPvetLVzTuaS6nvY/2E6cg==
+      - -server
+      - -ui
+      - -client=0.0.0.0
+    ports:
+      - 8500
     logging:
       driver: "json-file"
       options:

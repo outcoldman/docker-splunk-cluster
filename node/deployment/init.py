@@ -1,6 +1,7 @@
 import os
 
 import init_helpers
+import init_consul
 import init_cluster_slave
 import init_cluster_master
 import init_cluster_searchhead
@@ -32,6 +33,7 @@ def main():
         print "Initializing " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'..."
 
         init_helpers.wait_local()
+        init_consul.wait_consul()
 
         for role in roles:
             module = modules.get(role.upper())
@@ -85,7 +87,6 @@ def main():
                 os.path.join("/opt", "splunk-deployment", "_disable_indexing", "etc"),
                 os.path.join(os.environ['SPLUNK_HOME'], "etc"),
                 {
-                    # TODO - make as parameters
                     "@INDEX_DISCOVERY_MASTER_URI@": os.environ.get("INIT_INDEX_DISCOVERY_MASTER_URI", "https://cluster-master:8089"),
                     "@INDEX_DISCOVERY_PASS_4_SYMM_KEY@": os.environ.get("INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY", "indexdiscovery-changeme")
                 }
@@ -97,6 +98,9 @@ def main():
             init_helpers.wait_dependency(url, role)
 
         init_helpers.splunk_start()
+
+        init_consul.wait_consul()
+        init_consul.register_service(roles)
 
         print "Initialized " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'."
 
