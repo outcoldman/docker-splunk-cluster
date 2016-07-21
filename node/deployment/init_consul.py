@@ -23,21 +23,41 @@ def wait_consul():
     exit(1)
 
 
-def register_service(roles):
+def register_splunkd_service(tags):
+    register_service({
+        "Name": "splunkd",
+        "Tags": tags,
+        "Port": 8089,
+        "Check": {
+            "Script": "/opt/splunk/bin/splunk status",
+            "Interval": "10s"
+        }
+    })
+
+
+def register_splunkweb_service(tags):
+    register_service({
+        "Name": "splunkweb",
+        "Tags": tags,
+        "Port": 8000
+    })
+
+
+def register_kvstore_service(tags):
+    register_service({
+        "Name": "kvstore",
+        "Tags": tags,
+        "Port": 8191
+    })
+
+
+def register_service(service):
     """
-    Register local Splunk Enterprise instance as Consul service
+    Register local Service
     """
     for x in xrange(1, 300):
         try:
-            response = requests.put("http://127.0.0.1:8500/v1/agent/service/register", data=json.dumps({
-                "Name": "splunk",
-                "Tags": roles,
-                "Port": 8089,
-                "Check": {
-                    "Script": "/opt/splunk/bin/splunk status",
-                    "Interval": "10s"
-                }
-            }))
+            response = requests.put("http://127.0.0.1:8500/v1/agent/service/register", data=json.dumps(service))
             if response.status_code != 200:
                 print "Failed to register service. %d. %s." % (response.status_code, response.text) 
                 exit(1)

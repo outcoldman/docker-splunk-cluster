@@ -2,7 +2,8 @@ global
     maxconn 4096
 
 
-defaults
+defaults{{range service "syslog"}}
+    log {{.Address}}:{{.Port}} audit{{end}}
     mode http
     timeout connect 5000ms
     timeout client 50000ms
@@ -10,13 +11,15 @@ defaults
 
 
 frontend http-in
+    log global
     option forwardfor except 127.0.0.1
     bind *:8000
     default_backend splunk-shc-http
 
 
 backend splunk-shc-http
+    log global
     option forwardfor
     balance source
-    {{range service "SHC_MEMBER.splunk"}}
-    server {{.Node}} {{.Address}}:8000{{end}}
+    {{range service "SHC_MEMBER.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}

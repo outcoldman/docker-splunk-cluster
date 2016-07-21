@@ -10,6 +10,7 @@ import init_license_master
 import init_license_slave
 import init_shc_deployer
 import init_shc_deployer_client
+import init_hw_forwarder
 
 import splunk.util
 
@@ -22,7 +23,8 @@ modules = {
     "LICENSE_MASTER": init_license_master,
     "LICENSE_SLAVE": init_license_slave,
     "SHC_DEPLOYER": init_shc_deployer,
-    "SHC_DEPLOYER_CLIENT": init_shc_deployer_client
+    "SHC_DEPLOYER_CLIENT": init_shc_deployer_client,
+    "HW_FORWARDER": init_hw_forwarder
 }
 
 
@@ -57,11 +59,13 @@ def main():
             module = modules.get(role.upper())
 
             substitution = module.substitution() if hasattr(module, "substitution") else {}
-            init_helpers.copy_etc_tree(
-                os.path.join("/opt", "splunk-deployment", role, "etc"),
-                os.path.join(os.environ['SPLUNK_HOME'], "etc"),
-                substitution
-            )
+            role_etc = os.path.join("/opt", "splunk-deployment", role, "etc")
+            if os.path.isdir(role_etc):
+                init_helpers.copy_etc_tree(
+                    role_etc,
+                    os.path.join(os.environ['SPLUNK_HOME'], "etc"),
+                    substitution
+                )
 
             configurations = module.configurations() if hasattr(module, "configurations") else {}
             kvstore |= configurations.get("components", {}).get("kvstore", False)
@@ -112,7 +116,9 @@ def main():
         init_helpers.splunk_start()
 
         init_consul.wait_consul()
-        init_consul.register_service(roles)
+        init_consul.register_splunkd_service(roles)
+        if web:
+            init_consul.register_splunkweb_service(roles)
 
         for role in roles:
             module = modules.get(role.upper())

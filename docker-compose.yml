@@ -217,6 +217,30 @@ services:
         max-size: "1m"
         max-file: "5"
 
+  hw_forwarder:
+    build: ./node/
+    environment: 
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_ROLES=hw_forwarder
+      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
+      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - CONSUL_HOST=consul
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
+      - INIT_ADD_UDP_PORT=1514
+    networks:
+      splunk:
+        aliases:
+          - hw_forwarder
+    labels:
+      splunk.cluster: "hw_forwarder"
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "5"
+
   shc-lb-template:
     build: ./shc-lb-template/
     container_name: shc-lb-template
@@ -249,6 +273,7 @@ services:
     depends_on:
       - consul
       - shc-lb-template
+      - hw_forwarder
     labels:
       splunk.cluster: "shc-lb"
     networks:

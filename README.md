@@ -45,6 +45,9 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 - [ ] Send consul logs to Splunk
 - [ ] ssh-lb does not reload configuration, combine consule-template with haproxy when 1.6 will come out
 - [ ] Check if there are better way to configure SSO (including trustedIP)
+- [ ] On SHC we should log IP addresses with "tools.proxy.on = True"
+- [ ] Use consul http checks for web and mgmt ports
+- [ ] Collecting logs from consul server
  
 ## Bootstrap a captain example
 
