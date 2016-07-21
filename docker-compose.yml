@@ -14,7 +14,6 @@ services:
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - CONSUL_HOST=consul
-      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
@@ -51,7 +50,6 @@ services:
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
       - CONSUL_HOST=consul
-      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
@@ -82,7 +80,6 @@ services:
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - CONSUL_HOST=consul
-      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
@@ -121,7 +118,6 @@ services:
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - CONSUL_HOST=consul
-      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
@@ -151,7 +147,6 @@ services:
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - CONSUL_HOST=consul
-      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
@@ -183,7 +178,6 @@ services:
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
       - CONSUL_HOST=consul
-      - CONSUL_ENCRYPT=PPvetLVzTuaS6nvY/2E6cg==
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
@@ -216,7 +210,6 @@ services:
       - -data-dir=/consul/data
       - -dc=dc
       - -domain=splunk
-      - -encrypt=PPvetLVzTuaS6nvY/2E6cg==
       - -server
       - -ui
       - -client=0.0.0.0
