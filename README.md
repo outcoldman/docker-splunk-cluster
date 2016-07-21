@@ -30,6 +30,10 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 - Wait for the cluster
 - make bootstrap - to bootstrap 
 
+## Configuration
+
+- `INIT_SHCLUSTERING_SHCLUSTER_LABEL`
+
 ## TODO:
 
 - [ ] Secret storage for getting secrets (currently everything is in plain text from env variables). Might use Vault from HashiCorp.
@@ -38,6 +42,7 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 - [ ] Forwarders
 - [ ] Encrypt consul communication
 - [ ] CA Authority. Do not skip certificate verification.
+- [ ] Send consul logs to Splunk
  
 ## Bootstrap a captain example
 

@@ -11,6 +11,8 @@ import init_license_slave
 import init_shc_deployer
 import init_shc_deployer_client
 
+import splunk.util
+
 
 modules = {
     "CLUSTER_SLAVE": init_cluster_slave,
@@ -71,13 +73,13 @@ def main():
                 module.before_start()
 
         if "INIT_KVSTORE_ENABLED" in os.environ:
-            kvstore = bool(os.environ.get("INIT_KVSTORE_ENABLED"))
+            kvstore = splunk.util.normalizeBoolean(os.environ.get("INIT_KVSTORE_ENABLED"))
 
         if "INIT_WEB_ENABLED" in os.environ:
-            web = bool(os.environ.get("INIT_WEB_ENABLED"))
+            web = splunk.util.normalizeBoolean(os.environ.get("INIT_WEB_ENABLED"))
 
         if "INIT_INDEXING_ENABLED" in os.environ:
-            indexing = bool(os.environ.get("INIT_INDEXING_ENABLED"))
+            indexing = splunk.util.normalizeBoolean(os.environ.get("INIT_INDEXING_ENABLED"))
 
         if not kvstore:
             init_helpers.copy_etc_tree(
@@ -111,6 +113,11 @@ def main():
 
         init_consul.wait_consul()
         init_consul.register_service(roles)
+
+        for role in roles:
+            module = modules.get(role.upper())
+            if hasattr(module, "after_start"):
+                module.after_start()
 
         print "Initialized " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'."
 
