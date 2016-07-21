@@ -88,8 +88,6 @@ services:
       splunk:
         aliases:
           - shc-deployer
-    ports:
-      - 8000
     restart: always
     logging:
       driver: "json-file"
@@ -124,8 +122,6 @@ services:
       splunk.cluster: "shc-member"
     networks:
       - splunk
-    ports:
-      - 8000
     restart: always
     logging:
       driver: "json-file"
@@ -220,6 +216,59 @@ services:
       options:
         max-size: "1m"
         max-file: "5"
+
+  shc-lb-template:
+    build: ./shc-lb-template/
+    container_name: shc-lb-template
+    hostname: shc-lb-template
+    depends_on:
+      - consul
+    environment: 
+      - CONSUL_HOST=consul:8500
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
+    labels:
+      splunk.cluster: "shc-lb-template"
+    networks:
+      splunk:
+        aliases:
+          - shc-lb-template
+    restart: always
+    volumes:
+      - shc_lb_template:/usr/local/etc/haproxy/
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "5"
+
+  shc-lb:
+    image: haproxy:1.6.6
+    container_name: shc-lb
+    hostname: shc-lb
+    depends_on:
+      - consul
+      - shc-lb-template
+    labels:
+      splunk.cluster: "shc-lb"
+    networks:
+      splunk:
+        aliases:
+          - shc-lb
+    restart: always
+    ports:
+      - 8000
+    volumes:
+      - shc_lb_template:/usr/local/etc/haproxy/
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "5"
+
+volumes:
+  shc_lb_template:
+    driver: local
 
 networks:
   splunk:

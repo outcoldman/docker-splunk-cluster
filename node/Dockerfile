@@ -15,6 +15,7 @@ RUN apt-get update \
     && unzip /tmp/consul.zip \
     && chmod +x /bin/consul \
     && rm /tmp/consul.zip \
+    && rm /tmp/consul.sha256 \
     && apt-get purge -y --auto-remove wget unzip \
     && rm -rf /var/lib/apt/lists/*
 

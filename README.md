@@ -43,6 +43,8 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 - [ ] Encrypt consul communication
 - [ ] CA Authority. Do not skip certificate verification.
 - [ ] Send consul logs to Splunk
+- [ ] ssh-lb does not reload configuration, combine consule-template with haproxy when 1.6 will come out
+- [ ] Check if there are better way to configure SSO (including trustedIP)
  
 ## Bootstrap a captain example
 

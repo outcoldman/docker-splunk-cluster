@@ -1,0 +1,22 @@
+global
+    maxconn 4096
+
+
+defaults
+    mode http
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+
+frontend http-in
+    option forwardfor except 127.0.0.1
+    bind *:8000
+    default_backend splunk-shc-http
+
+
+backend splunk-shc-http
+    option forwardfor
+    balance source
+    {{range service "SHC_MEMBER.splunk"}}
+    server {{.Node}} {{.Address}}:8000{{end}}
