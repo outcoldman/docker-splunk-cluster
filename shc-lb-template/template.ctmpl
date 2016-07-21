@@ -13,7 +13,7 @@ defaults{{range service "syslog"}}
 frontend http-in
     log global
     option forwardfor except 127.0.0.1
-    bind *:8000
+    bind *:80
     default_backend splunk-shc-http
 
 

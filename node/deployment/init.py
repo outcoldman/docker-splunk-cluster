@@ -97,6 +97,10 @@ def main():
                 os.path.join("/opt", "splunk-deployment", "_disable_web", "etc"),
                 os.path.join(os.environ['SPLUNK_HOME'], "etc")
             )
+        else:
+            prefix = os.environ.get("INIT_WEB_SETTINGS_PREFIX")
+            if prefix:
+                init_helpers.set_web_prefix(prefix)
 
         if not indexing:
             init_helpers.copy_etc_tree(

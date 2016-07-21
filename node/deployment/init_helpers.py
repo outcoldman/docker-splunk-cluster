@@ -159,3 +159,12 @@ def wait_local():
         time.sleep(1)
     print "Failed to connect to local node."
     exit(1)
+
+
+def set_web_prefix(prefix):
+    web_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "web.conf")
+    conf = splunk.clilib.cli_common.readConfFile(web_conf) if os.path.exists(web_conf) else {}
+    conf["settings"] = {
+        "root_endpoint": prefix
+    }
+    splunk.clilib.cli_common.writeConfFile(web_conf, conf)

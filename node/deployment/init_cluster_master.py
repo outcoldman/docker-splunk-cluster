@@ -7,7 +7,7 @@ def configurations():
     return {
         "components": {
             "kvstore": False,
-            "web": True,
+            "web": False,
             "indexing": False
         }
     }

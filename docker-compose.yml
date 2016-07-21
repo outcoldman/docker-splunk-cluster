@@ -13,6 +13,8 @@ services:
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - INIT_WEB_ENABLED=true
+      - INIT_WEB_SETTINGS_PREFIX=/licensemaster
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -22,8 +24,6 @@ services:
       splunk:
         aliases:
           - license-master
-    ports:
-      - 8000
     restart: always
     logging:
       driver: "json-file"
@@ -49,6 +49,8 @@ services:
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
+      - INIT_WEB_ENABLED=true
+      - INIT_WEB_SETTINGS_PREFIX=/clustermaster
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -58,8 +60,6 @@ services:
       splunk:
         aliases:
           - cluster-master
-    ports:
-      - 8000
     restart: always
     logging:
       driver: "json-file"
@@ -79,6 +79,8 @@ services:
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - INIT_WEB_ENABLED=true
+      - INIT_WEB_SETTINGS_PREFIX=/shcdeployer
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -115,6 +117,7 @@ services:
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - INIT_WEB_SETTINGS_PREFIX=/shc
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -173,6 +176,7 @@ services:
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
+      - INIT_WEB_SETTINGS_PREFIX=/dmc
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -182,8 +186,6 @@ services:
       splunk:
         aliases:
           - dmc
-    ports:
-      - 8000
     restart: always
     logging:
       driver: "json-file"
@@ -282,7 +284,7 @@ services:
           - shc-lb
     restart: always
     ports:
-      - 8000
+      - 80
     volumes:
       - shc_lb_template:/usr/local/etc/haproxy/
     logging:
