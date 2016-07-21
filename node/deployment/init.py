@@ -32,6 +32,7 @@ def main():
     if roles:
         print "Initializing " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'..."
 
+        # Wait for local instance
         init_helpers.wait_local()
         init_consul.wait_consul()
 
@@ -68,6 +69,15 @@ def main():
 
             if hasattr(module, "before_start"):
                 module.before_start()
+
+        if "INIT_KVSTORE_ENABLED" in os.environ:
+            kvstore = bool(os.environ.get("INIT_KVSTORE_ENABLED"))
+
+        if "INIT_WEB_ENABLED" in os.environ:
+            web = bool(os.environ.get("INIT_WEB_ENABLED"))
+
+        if "INIT_INDEXING_ENABLED" in os.environ:
+            indexing = bool(os.environ.get("INIT_INDEXING_ENABLED"))
 
         if not kvstore:
             init_helpers.copy_etc_tree(
