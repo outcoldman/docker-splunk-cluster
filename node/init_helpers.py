@@ -147,11 +147,7 @@ def wait_local():
             # This url does not require authentication, ignore certificate
             response = requests.get("https://localhost:8089/services/server/info?output_mode=json", verify=False)
             if response.status_code == 200:
-                kvstore_status = response.json()["entry"][0]["content"]["kvStoreStatus"]
-                if kvstore_status == "ready":
-                    return
-                else:
-                    print "Waiting for local node to be ready, KVStore status is " + kvstore_status + ", waiting for ready."
+                return
             else:
                 print "Waiting for local node to be ready."
         except requests.exceptions.RequestException:

@@ -98,6 +98,12 @@ def main():
 
         init_helpers.splunk_start()
 
+        for role in roles:
+            module = modules.get(role.upper())
+            if hasattr(module, "after_start"):
+                init_helpers.wait_local()
+                module.after_start()
+
         print "Initialized " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'."
 
 if __name__ == "__main__":

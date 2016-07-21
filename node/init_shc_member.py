@@ -1,4 +1,7 @@
 import os
+import cherrypy
+
+import splunk.util
 
 import init_helpers
 

@@ -68,6 +68,8 @@ services:
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - INIT_AUTO_BOOTSTRAP_SHC=true
+      - INIT_AUTO_BOOTSTRAP_SHC_NUMBER=3
     labels:
       splunk.cluster: "shc-deployer"
     networks:
@@ -102,12 +104,12 @@ services:
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - INIT_AUTO_BOOTSTRAP_SHC=true
+      - INIT_AUTO_BOOTSTRAP_SHC_DEPLOYER_HANDLER=http://shc-deployer:8080
     labels:
       splunk.cluster: "shc-member"
     networks:
       - splunk
-    ports:
-      - 8000
     restart: always
     logging:
       driver: "json-file"
