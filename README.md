@@ -221,6 +221,14 @@ docker-compose up -d
 docker-compose scale cluster-slave=4 shc-member=3
 ```
 
+Watch for status of deployment:
+- Open `http://<docker>:8500` to watch for all green services and hosts.
+- Watch for `docker-compose logs -f shc-member` for the line `Successfully bootstrapped this node as the captain with the given servers.`.
+    This will mean that SHC is bootstrapped.
+- Open Cluster Master web on `http://<docker>:8100` and check `Indexer Clustering: Master Node` page
+    that Indexes are replicated and ready for search.
+- Open SHC on `http://<docker>:8000` and check that you see logs from all instances `index="_internal" | stats count by host`.
+
 You can scale up later with
 
 ```
