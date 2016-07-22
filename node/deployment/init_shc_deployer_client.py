@@ -12,7 +12,7 @@ def configurations():
         },
         # shc_deployer will be set only after first deploy, so do not depend on this role
         "dependencies": [
-            ("https://shc-deployer:8089", "")
+            (os.environ.get("INIT_SHCLUSTERING_SHCDEPLOYER", "https://shc-deployer:8089"), "")
         ]
     }
 

@@ -12,10 +12,7 @@ def configurations():
             "kvstore": False,
             "web": False,
             "indexing": False
-        },
-        "dependencies": [
-            ("https://cluster-master:8089", "cluster_master")
-        ]
+        }
     }
 
 

@@ -6,8 +6,9 @@ MAINTAINER Denis Gladkikh <docker-splunk-cluster@denis.gladkikh.email>
 ENV CONSUL_VERSION=0.6.4
 ENV CONSUL_SHA256SUMS=abdf0e1856292468e2c9971420d73b805e93888e006c76324ae39416edcf0627
 
+# Install consul for service discovery 
 RUN apt-get update \
-    && apt-get install -y wget unzip ca-certificates \
+    && apt-get install -y wget unzip \
     && wget -qO /tmp/consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip \
     && echo "${CONSUL_SHA256SUMS}  /tmp/consul.zip" > /tmp/consul.sha256 \
     && sha256sum -c /tmp/consul.sha256 \
@@ -19,13 +20,9 @@ RUN apt-get update \
     && apt-get purge -y --auto-remove wget unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install custom Splunk custom default CA certificate to CA storage, so all tools will be able to validate it
-RUN cp $SPLUNK_BACKUP_DEFAULT_ETC/etc/auth/ca.pem.default /usr/local/share/ca-certificates/splunk-ca.crt \
-    && update-ca-certificates
-
 COPY deployment /opt/splunk-deployment/
-COPY consul_indexes.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/indexes.conf
-COPY consul_inputs.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/inputs.conf
+COPY indexes.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/indexes.conf
+COPY inputs.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/inputs.conf
 COPY consul.sh ${SPLUNK_HOME}/bin/scripts/consul.sh
 
 RUN chmod +x ${SPLUNK_HOME}/bin/scripts/consul.sh

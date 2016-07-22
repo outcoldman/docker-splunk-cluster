@@ -42,6 +42,14 @@ listen http-in-dmc
     {{range service "DMC.splunkweb"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 
+# License Master
+
+listen http-in-cluster-master
+    log global
+    bind :8300
+    {{range service "LICENSE_MASTER.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
+
 # Consul
 
 listen http-in-consul

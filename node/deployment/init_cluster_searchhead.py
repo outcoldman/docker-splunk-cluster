@@ -11,7 +11,7 @@ def configurations():
             "indexing": False
         },
         "dependencies": [
-            ("https://cluster-master:8089", "cluster_master")
+            (os.environ.get("INIT_CLUSTERING_CLUSTER_MASTER", "https://cluster-master:8089"), "cluster_master")
         ]
     }
 
