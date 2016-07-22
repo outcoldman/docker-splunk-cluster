@@ -218,6 +218,9 @@ Ports:
 
 #### On docker instance
 
+> NOTE: you can put your license (if you have one) under `./node/deployment/` before you build and License Master automatically will
+add this license to the pool, without that you will see errors in `_internal` index about Licensing.
+
 ```
 docker-compose build
 docker-compose up -d
