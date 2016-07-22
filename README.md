@@ -34,6 +34,17 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 
 - `INIT_SHCLUSTERING_SHCLUSTER_LABEL`
 
+
+## Examples
+
+Install app using SHC Deployer
+
+```
+docker cp ~/Downloads/splunk_app_aws shc-deployer:/opt/splunk/etc/shcluster/apps/
+docker exec shc-deployer entrypoint.sh chown -R splunk:splunk /opt/splunk/etc/shcluster/apps/
+docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart true --answer-yes -target https://3cf08a2cb3d5:8089 -auth admin:changeme
+```
+
 ## TODO:
 
 - [ ] Secret storage for getting secrets (currently everything is in plain text from env variables). Might use Vault from HashiCorp.

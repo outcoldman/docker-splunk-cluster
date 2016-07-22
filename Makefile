@@ -87,12 +87,3 @@ local-up:
 	docker-compose scale cluster-slave=4
 	docker-compose scale shc-member=3
 	@echo "Use 'docker-compose logs -f cluster-master' to wait for Initialized cluster-master as Cluster Master"
-
-bootstrap:
-	docker exec -it cluster_shc-member_1 \
-		entrypoint.sh \
-			splunk \
-			bootstrap \
-			shcluster-captain \
-			-auth admin:changeme \
-			-servers_list $$(docker ps --filter=label=splunk.cluster=shc-member -q | xargs -I @ printf "https://@:8089,")
