@@ -44,7 +44,7 @@ listen http-in-dmc
 
 # License Master
 
-listen http-in-cluster-master
+listen http-in-license-master
     log global
     bind :8300
     {{range service "LICENSE_MASTER.splunkweb"}}
