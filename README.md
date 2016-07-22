@@ -221,6 +221,8 @@ Ports:
 > NOTE: you can put your license (if you have one) under `./node/deployment/` before you build and License Master automatically will
 add this license to the pool, without that you will see errors in `_internal` index about Licensing.
 
+> NOTE2: If you are using Docker for Mac - it allocates just 2Gb by default, not enough for this demo. Set more. Maybe 8Gb.
+
 ```
 docker-compose build
 docker-compose up -d
