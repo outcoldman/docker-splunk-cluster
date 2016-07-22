@@ -68,6 +68,9 @@ cluster initialization.
 
 - `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
 
+> NOTE: you can put your license (if you have one) under `./node/deployment/` before you build and License Master automatically will
+add this license to the pool
+
 ##### License Slave
 
 - Does not require KVStore.
