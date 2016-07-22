@@ -5,8 +5,6 @@ services:
     build: ./node/
     container_name: license-master
     hostname: license-master
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     depends_on:
       - consul
     environment: 
@@ -35,8 +33,6 @@ services:
     build: ./node/
     container_name: cluster-master
     hostname: cluster-master
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     depends_on:
       - license-master
       - consul
@@ -72,8 +68,6 @@ services:
     build: ./node/
     container_name: shc-deployer
     hostname: shc-deployer
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     depends_on:
       - consul
     environment: 
@@ -100,8 +94,6 @@ services:
 
   shc-member:
     build: ./node/
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     depends_on:
       - shc-deployer
       - license-master
@@ -136,8 +128,6 @@ services:
 
   cluster-slave:
     build: ./node/
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     depends_on:
       - cluster-master
       - license-master
@@ -167,8 +157,6 @@ services:
     build: ./node/
     container_name: dmc
     hostname: dmc
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     depends_on:
       - license-master
       - cluster-master
@@ -225,8 +213,6 @@ services:
 
   hw_forwarder:
     build: ./node/
-    extra_hosts:
-      - "SplunkServerDefaultCert:127.0.0.1"
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=hw_forwarder

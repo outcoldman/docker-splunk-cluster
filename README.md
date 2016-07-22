@@ -54,16 +54,11 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 - [ ] Encrypt consul communication
 - [ ] CA Authority. Do not skip certificate verification.
 - [ ] Send consul logs to Splunk
-- [ ] ssh-lb does not reload configuration, combine consule-template with haproxy when 1.6 will come out
 - [ ] Check if there are better way to configure SSO (including trustedIP)
 - [ ] On SHC we should log IP addresses with "tools.proxy.on = True"
 - [ ] Use consul http checks for web and mgmt ports
 - [ ] Collecting logs from consul server
 - [ ] Upgrade to consul-template 0.16.0 rtm.
 - [ ] SHC Members require restart (possible SHC Deployer should do rolling restart after bootstrap)
+- [ ] Custom CA.
  
-## Bootstrap a captain example
-
-```
-docker exec -it cluster_shc-member_1 entrypoint.sh splunk bootstrap shcluster-captain -auth admin:changeme -servers_list "https://f0b64885cfa9:8089,https://c48c6a8c4d1d:8089,https://b5e331a49a11:8089"
-```

@@ -30,7 +30,6 @@ def register_splunkd_service(tags):
         "Port": 8089,
         "Check": {
             "Script": "/opt/splunk/bin/splunk status",
-            "HTTP": "https://SplunkServerDefaultCert:8089/services/server/info",
             "Interval": "60s"
         }
     })
