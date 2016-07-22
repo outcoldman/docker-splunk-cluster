@@ -123,6 +123,8 @@ def main():
         init_consul.register_splunkd_service(roles)
         if web:
             init_consul.register_splunkweb_service(roles)
+        if kvstore:
+            init_consul.register_kvstore_service(roles)
 
         for role in roles:
             module = modules.get(role.upper())

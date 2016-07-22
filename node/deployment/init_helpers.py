@@ -130,8 +130,8 @@ def wait_dependency(uri, server_role):
                     print "Waiting for " + server_role + " in " + uri + " got " + ", ".join(server_roles) + "."
             else:
                 print "Waiting for "+ server_role + " in " + uri + "."
-        except requests.exceptions.RequestException:
-            pass
+        except requests.exceptions.RequestException as exception:
+            print "Waiting for " + server_role + " in " + uri + ". Exception: " + str(exception)
         time.sleep(1)
     print "Failed to connect to " + uri + " and check server role " + server_role
     exit(1)
@@ -155,7 +155,7 @@ def wait_local():
             else:
                 print "Waiting for local node to be ready."
         except requests.exceptions.RequestException:
-            pass
+            print "Waiting for " + server_role + " in " + uri + ". Exception: " + str(exception)
         time.sleep(1)
     print "Failed to connect to local node."
     exit(1)

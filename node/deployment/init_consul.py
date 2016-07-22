@@ -30,7 +30,8 @@ def register_splunkd_service(tags):
         "Port": 8089,
         "Check": {
             "Script": "/opt/splunk/bin/splunk status",
-            "Interval": "10s"
+            "HTTP": "https://SplunkServerDefaultCert:8089/services/server/info",
+            "Interval": "60s"
         }
     })
 
@@ -39,7 +40,11 @@ def register_splunkweb_service(tags):
     register_service({
         "Name": "splunkweb",
         "Tags": tags,
-        "Port": 8000
+        "Port": 8000,
+        "Check": {
+            "HTTP": "http://127.0.0.1:8000/robots.txt",
+            "Interval": "60s"
+        }
     })
 
 
@@ -47,7 +52,11 @@ def register_kvstore_service(tags):
     register_service({
         "Name": "kvstore",
         "Tags": tags,
-        "Port": 8191
+        "Port": 8191, 
+        "Check": {
+            "TCP": "127.0.0.1:8191",
+            "Interval": "60s"
+        }
     })
 
 
