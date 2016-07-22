@@ -1,0 +1,51 @@
+global
+    maxconn 4096
+
+
+defaults{{range service "syslog"}}
+    log {{.Address}}:{{.Port}} audit{{end}}
+    mode http
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+# SHC
+# See http://blogs.splunk.com/2015/06/04/configuring-haproxy-splunk-with-rest-api-sdk-compatability/
+
+frontend http-in-8000
+    log global
+    option forwardfor except 127.0.0.1
+    bind :8000
+    default_backend splunk-shc-http
+
+backend splunk-shc-http
+    log global
+    option forwardfor
+    balance roundrobin
+    cookie SERVERID insert indirect nocache
+    {{range service "SHC_MEMBER.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}} check cookie {{.Node}}{{end}}
+
+# Cluster Master
+
+listen http-in-cluster-master
+    log global
+    bind :8100
+    {{range service "CLUSTER_MASTER.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
+
+# DMC
+
+listen http-in-dmc
+    log global
+    bind :8200
+    {{range service "DMC.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
+
+# Consul
+
+listen http-in-consul
+    log global
+    bind :8500
+    {{range service "consul"}}
+    server {{.Node}} {{.Address}}:8500{{end}}

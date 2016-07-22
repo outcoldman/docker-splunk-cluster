@@ -48,6 +48,8 @@ The main idea is simple, to use original `outcoldman` (or RelEng\official Splunk
 - [ ] On SHC we should log IP addresses with "tools.proxy.on = True"
 - [ ] Use consul http checks for web and mgmt ports
 - [ ] Collecting logs from consul server
+- [ ] Upgrade to consul-template 0.16.0 rtm.
+- [ ] SHC Members require restart (possible SHC Deployer should do rolling restart after bootstrap)
  
 ## Bootstrap a captain example
 

@@ -13,8 +13,6 @@ services:
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_WEB_ENABLED=true
-      - INIT_WEB_SETTINGS_PREFIX=/licensemaster
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -50,7 +48,6 @@ services:
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
       - INIT_WEB_ENABLED=true
-      - INIT_WEB_SETTINGS_PREFIX=/clustermaster
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -79,8 +76,6 @@ services:
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_WEB_ENABLED=true
-      - INIT_WEB_SETTINGS_PREFIX=/shcdeployer
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -117,7 +112,6 @@ services:
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_WEB_SETTINGS_PREFIX=/shc
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -176,7 +170,6 @@ services:
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
       - INIT_LICENSE_MASTER=https://license-master:8089
-      - INIT_WEB_SETTINGS_PREFIX=/dmc
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -211,8 +204,6 @@ services:
       - -server
       - -ui
       - -client=0.0.0.0
-    ports:
-      - 8500
     logging:
       driver: "json-file"
       options:
@@ -243,59 +234,34 @@ services:
         max-size: "1m"
         max-file: "5"
 
-  shc-lb-template:
-    build: ./shc-lb-template/
-    container_name: shc-lb-template
-    hostname: shc-lb-template
+  lb:
+    build: ./lb/
+    container_name: lb
+    hostname: lb
     depends_on:
       - consul
+      - hw_forwarder
     environment: 
       - CONSUL_HOST=consul:8500
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
     labels:
-      splunk.cluster: "shc-lb-template"
+      splunk.cluster: "lb"
     networks:
       splunk:
         aliases:
-          - shc-lb-template
-    restart: always
-    volumes:
-      - shc_lb_template:/usr/local/etc/haproxy/
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
-  shc-lb:
-    image: haproxy:1.6.6
-    container_name: shc-lb
-    hostname: shc-lb
-    depends_on:
-      - consul
-      - shc-lb-template
-      - hw_forwarder
-    labels:
-      splunk.cluster: "shc-lb"
-    networks:
-      splunk:
-        aliases:
-          - shc-lb
+          - lb
     restart: always
     ports:
-      - 80
-    volumes:
-      - shc_lb_template:/usr/local/etc/haproxy/
+      - 8000:8000
+      - 8100:8100
+      - 8200:8200
+      - 8500:8500
     logging:
       driver: "json-file"
       options:
         max-size: "1m"
         max-file: "5"
-
-volumes:
-  shc_lb_template:
-    driver: local
 
 networks:
   splunk:

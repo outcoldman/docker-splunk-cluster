@@ -36,6 +36,6 @@ def after_start():
     if udp_port:
         init_consul.register_service({
             "Name": "syslog",
-            "Tags": ["splunk", "udp"]
+            "Tags": ["splunk", "udp"],
             "Port": int(udp_port)
         })
