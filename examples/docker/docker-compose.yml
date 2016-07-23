@@ -1,59 +1,26 @@
 version: '2'
 services:
 
-  license-master:
-    build: ./../../images/node/
-    container_name: license-master
-    hostname: license-master
-    depends_on:
-      - consul
-    environment: 
-      - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=license_master
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_WEB_ENABLED=true
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
-    labels:
-      splunk.cluster: "license-master"
-    networks:
-      splunk:
-        aliases:
-          - license-master
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
   cluster-master:
-    build: ./../../images/node/
+    image: outcoldman/splunk-cluster:6.4.2
     container_name: cluster-master
     hostname: cluster-master
     depends_on:
-      - license-master
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=cluster_master,license_slave
+      - SPLUNK_ROLES=cluster_master
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_REPLICATION_FACTOR=1
       - INIT_CLUSTERING_SEARCH_FACTOR=1
-      - INIT_CLUSTERING_CLUSTER_LABEL=cluster1
+      - INIT_CLUSTERING_CLUSTER_LABEL=cluster
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
       - INIT_WEB_ENABLED=true
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -68,7 +35,7 @@ services:
         max-file: "5"
 
   shc-deployer:
-    build: ./../../images/node/
+    image: outcoldman/splunk-cluster:6.4.2
     container_name: shc-deployer
     hostname: shc-deployer
     depends_on:
@@ -82,7 +49,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     labels:
       splunk.cluster: "shc-deployer"
     networks:
@@ -97,21 +64,18 @@ services:
         max-file: "5"
 
   shc-member:
-    build: ./../../images/node/
+    image: outcoldman/splunk-cluster:6.4.2
     depends_on:
       - shc-deployer
-      - license-master
       - cluster-master
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead
+      - SPLUNK_ROLES=shc_member,shc_deployer_client,cluster_searchhead
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_SHCLUSTERING_SHCDEPLOYER=https://shc-deployer:8089
       - INIT_SHCLUSTERING_REPLICATION_FACTOR=3
-      - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster1
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
+      - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
@@ -120,7 +84,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     labels:
       splunk.cluster: "shc-member"
     networks:
@@ -133,22 +97,19 @@ services:
         max-file: "5"
 
   cluster-slave:
-    build: ./../../images/node/
+    image: outcoldman/splunk-cluster:6.4.2
     depends_on:
       - cluster-master
-      - license-master
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=cluster_slave,license_slave
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
+      - SPLUNK_ROLES=cluster_slave
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     labels:
       splunk.cluster: "cluster-slave"
     networks:
@@ -161,27 +122,24 @@ services:
         max-file: "5"
 
   dmc:
-    build: ./../../images/node/
+    image: outcoldman/splunk-cluster:6.4.2
     container_name: dmc
     hostname: dmc
     depends_on:
-      - license-master
       - cluster-master
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=license_slave,cluster_searchhead,dmc
+      - SPLUNK_ROLES=cluster_searchhead,dmc
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
       - INIT_KVSTORE_ENABLED=false
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     labels:
       splunk.cluster: "dmc"
     networks:
@@ -196,7 +154,7 @@ services:
         max-file: "5"
 
   consul:
-    build: ./../../images/consul/
+    image: outcoldman/splunk-cluster-consul:6.4.2
     container_name: consul
     hostname: consul
     restart: always
@@ -213,7 +171,7 @@ services:
       - CONSUL_CLIENT=0.0.0.0
       - CONSUL_BOOTSTRAP_EXPECT=1
       - CONSUL_JOIN=consul
-      - CONSUL_ADVERTISE_INTERFACE=eth2
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     logging:
       driver: "json-file"
       options:
@@ -221,7 +179,7 @@ services:
         max-file: "5"
 
   hw-forwarder:
-    build: ./../../images/node/
+    image: outcoldman/splunk-cluster:6.4.2
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=hw_forwarder
@@ -231,7 +189,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth1
+      - CONSUL_ADVERTISE_INTERFACE=eth0
     networks:
       splunk:
         aliases:
@@ -246,7 +204,7 @@ services:
         max-file: "5"
 
   lb:
-    build: ./../../images/lb/
+    image: outcoldman/splunk-cluster-lb:6.4.2
     container_name: lb
     hostname: lb
     depends_on:

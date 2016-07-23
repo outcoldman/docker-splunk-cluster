@@ -44,9 +44,9 @@ setup:
 	@echo "eval $$(docker-machine env splunk1) && docker network create --driver=overlay splunk"
 
 build:
-	cd ./../../images/node && docker build -t $$(docker-machine ip registry)/node . && docker push $$(docker-machine ip registry)/node
-	cd ./../../lb && docker build -t $$(docker-machine ip registry)/lb . && docker push $$(docker-machine ip registry)/lb
-	cd ./../../consul && docker build -t $$(docker-machine ip registry)/consul . && docker push $$(docker-machine ip registry)/consul
+	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster-lb:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster-lb:6.4.2
+	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster-consul:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster-consul:6.4.2
 
 deploy-consul:
 	docker service create \
@@ -65,7 +65,7 @@ deploy-consul:
 		--env CONSUL_JOIN="consul" \
 		--env CONSUL_ADVERTISE_INTERFACE=eth2 \
 		--publish 8500:8500 \
-		$$(docker-machine ip registry)/consul
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster-consul:6.4.2
 
 deploy-license-master:
 	docker service create \
@@ -86,7 +86,8 @@ deploy-license-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+	docker cp *.lic $$(docker ps -qa --filter=label=splunk.cluster=license-master):/opt/splunk-deployment/licenses
 
 deploy-cluster-master:
 	docker service create \
@@ -112,7 +113,7 @@ deploy-cluster-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
 
 deploy-shc-deployer:
 	docker service create \
@@ -131,7 +132,7 @@ deploy-shc-deployer:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
 
 deploy-shc-member:
 	docker service create \
@@ -157,7 +158,7 @@ deploy-shc-member:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
 
 deploy-cluster-slave:
 	docker service create \
@@ -176,7 +177,7 @@ deploy-cluster-slave:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
 
 deploy-dmc:
 	docker service create \
@@ -198,7 +199,7 @@ deploy-dmc:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
 
 deploy-hw-forwarder:
 	docker service create \
@@ -217,7 +218,7 @@ deploy-hw-forwarder:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth1 \
-		$$(docker-machine ip registry)/node
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
 
 deploy-lb:
 	docker service create \
@@ -236,7 +237,7 @@ deploy-lb:
 		--env CONSUL_DC="dc" \
 		--env CONSUL_HOST="consul:8500" \
 		--env CONSUL_DOMAIN="splunk" \
-		$$(docker-machine ip registry)/lb
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster-lb:6.4.2
 
 deploy: deploy-consul deploy-license-master deploy-cluster-master deploy-shc-deployer deploy-shc-member deploy-cluster-slave deploy-dmc deploy-hw-forwarder deploy-lb
 

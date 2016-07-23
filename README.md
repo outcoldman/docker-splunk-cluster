@@ -25,7 +25,7 @@ Based on `outcoldman/splunk:6.4.2`.
 
 ### Cluster-aware image
 
-These examples depend on the custom image, which you can build using `./node` folder.
+These examples depend on the custom image, which you can build using `./images/splunk` folder.
 This image is based on `outcoldman/splunk` and includes several changes:
 
 - Adds consul binary to the image. We use consul for service discovery.
@@ -60,6 +60,13 @@ cluster initialization.
 - `INIT_INDEX_DISCOVERY_MASTER_URI` - sets uri to Cluster Master with enabled Index Discovery. When indexing is off. Defaults to `https://cluster-master:8089`.
 - `INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY` - set index discovery `pass4SymmKey`. When indexing is off. Defaults to `indexdiscovery-changeme`.
 
+Consul related variables
+
+- `CONSUL_HOST` - which consul host to join. Defaults to `consul`.
+- `CONSUL_ADVERTISE_INTERFACE` - which interface IP to use for advertising.
+- `CONSUL_DC` - name of data center. Defaults to `dc`.
+- `CONSUL_DOMAIN` - consul default domain. Defaults to `splunk`.
+
 ##### License Master
 
 - Add licenses to the pool if it will find any `*.lic` files under `/opt/splunk-deployment/`.
@@ -69,9 +76,7 @@ cluster initialization.
 - Does not require DMC app.
 
 - `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
-
-> NOTE: you can put your license (if you have one) under `./node/deployment/` before you build and License Master automatically will
-add this license to the pool
+- `INIT_WAIT_LICENSE` - wait for license files under `/opt/splunk-deployment/licenses`. Defaults to `False`.
 
 ##### License Slave
 
@@ -237,19 +242,28 @@ Ports:
 
 #### On docker instance
 
-> NOTE: you can put your license (if you have one) under `./node/deployment/` before you build and License Master automatically will
-add this license to the pool, without that you will see errors in `_internal` index about Licensing.
-
 > NOTE2: If you are using Docker for Mac - it allocates just 2Gb by default, not enough for this demo. Set more. Maybe 8Gb.
 
 ```
 cd ./examples/docker
 ```
 
+This folder has two docker-compose files. One which does not require License Master and Splunk Enterprise License
+`docker-compose.yml` and second is an extension for the first one, which adds License Master node. `Makefile` in this folder
+deals with how `docker-compose` needs to be invoked.
+
+##### If you don't have a License
+
+Build images.
+
 ```
-docker-compose build
-docker-compose up -d
-docker-compose scale cluster-slave=4 shc-member=3
+make build
+```
+
+Deploy instances.
+
+```
+make deploy
 ```
 
 Watch for status of deployment:
@@ -263,24 +277,63 @@ Watch for status of deployment:
 You can scale up later with
 
 ```
-docker-compose scale cluster-slave=8 shc-member=5
+docker-compose -f docker-compose.yml scale cluster-slave=8 shc-member=5
 ```
 
 To clean use
 
 ```
-docker-compose kill
-docker-compose rm -v -f
+make clean
+```
+
+##### If you have a Splunk Enterprise License
+
+If you have Splunk Enterprise License copy it in this folder (make sure that license files have extension `*.lic`).
+
+Build images.
+
+```
+make build-lm
+```
+
+Deploy instances. This command copies license files to the license master node, deploys 3 SHC Members and 4 Indexer Cluster Slaves.
+Command will fail if you don't have license files in current folder.
+
+```
+make deploy-lm
+```
+
+Watch for status of deployment:
+- Open `http://<docker>:8500` to watch for all green services and hosts.
+- Watch for `docker-compose logs -f shc-member` for the line `Successfully bootstrapped this node as the captain with the given servers.`.
+    This will mean that SHC is bootstrapped.
+- Open Cluster Master web on `http://<docker>:8100` and check `Indexer Clustering: Master Node` page
+    that Indexes are replicated and ready for search.
+- Open SHC on `http://<docker>:8000` and check that you see logs from all instances `index="_internal" | stats count by host`.
+
+You can scale up later with
+
+```
+docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=8 shc-member=5
+```
+
+To clean use
+
+```
+make clean-lm
 ```
 
 #### On docker swarm
 
 > In progress
 > TODO: seems like docker swarm mode in 1.12-rc4 has issue with network discovery. So example does not work.
+> NOTE: Splunk Enterprise License is required
 
 ```
 cd ./examples/docker-swarm-mode
 ```
+
+Copy Splunk Enterprise license (if you have) in this folder (make sure that license files have extension `*.lic`).
 
 Prepare swarm. This command will create 4 docker-machine instances in VirtualBox.
 One instance is a docker registry. Another 3 will be part of Swarm cluster.
@@ -338,7 +391,6 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 - [ ] Collecting logs from consul server
 - [ ] Upgrade to consul-template 0.16.0 rtm.
 - [ ] Secure by default `8500`.
-- [ ] Expect `.lic` files in better place.
 - [ ] Use `socket` to get fqdn.
 - [ ] SHC Autobootstrap should support removed members.
 - [ ] Make all consul requests with retry.

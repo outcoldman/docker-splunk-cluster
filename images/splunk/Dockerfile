@@ -27,4 +27,6 @@ COPY consul.sh ${SPLUNK_HOME}/bin/scripts/consul.sh
 
 RUN chmod +x ${SPLUNK_HOME}/bin/scripts/consul.sh
 
+RUN mkdir -p /opt/splunk-deployment/licenses
+
 ENV SPLUNK_CMD "cmd python /opt/splunk-deployment/init.py"
