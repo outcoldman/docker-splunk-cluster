@@ -190,7 +190,7 @@ services:
         max-file: "5"
 
   consul:
-    image: consul:v0.6.4
+    build: ./consul/
     container_name: consul
     hostname: consul
     restart: always
@@ -198,15 +198,15 @@ services:
       splunk:
         aliases:
           - consul
-    command:
-      - agent
-      - -bootstrap
-      - -data-dir=/consul/data
-      - -dc=dc
-      - -domain=splunk
-      - -server
-      - -ui
-      - -client=0.0.0.0
+    labels:
+      splunk.cluster: "consul"
+    environment:
+      - CONSUL_DATA_DIR=/consul/data
+      - CONSUL_DC=dc
+      - CONSUL_DOMAIN=splunk
+      - CONSUL_CLIENT=0.0.0.0
+      - CONSUL_BOOTSTRAP_EXPECT=1
+      - CONSUL_JOIN=consul
     logging:
       driver: "json-file"
       options:

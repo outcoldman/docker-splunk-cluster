@@ -279,3 +279,4 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 - [ ] Use `socket` to get fqdn.
 - [ ] SHC Autobootstrap should support removed members.
 - [ ] Make all consul requests with retry.
+- [ ] Possible issues with permissions.
