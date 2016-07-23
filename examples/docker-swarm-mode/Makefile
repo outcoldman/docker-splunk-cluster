@@ -45,8 +45,8 @@ setup:
 
 build:
 	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
-	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster-lb:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster-lb:6.4.2
-	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster-consul:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster-consul:6.4.2
+	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-lb . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-lb
+	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul
 
 deploy-consul:
 	docker service create \
@@ -65,7 +65,7 @@ deploy-consul:
 		--env CONSUL_JOIN="consul" \
 		--env CONSUL_ADVERTISE_INTERFACE=eth2 \
 		--publish 8500:8500 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster-consul:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul
 
 deploy-license-master:
 	docker service create \
@@ -237,7 +237,7 @@ deploy-lb:
 		--env CONSUL_DC="dc" \
 		--env CONSUL_HOST="consul:8500" \
 		--env CONSUL_DOMAIN="splunk" \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster-lb:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-lb
 
 deploy: deploy-consul deploy-license-master deploy-cluster-master deploy-shc-deployer deploy-shc-member deploy-cluster-slave deploy-dmc deploy-hw-forwarder deploy-lb
 

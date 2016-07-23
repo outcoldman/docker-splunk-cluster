@@ -22,8 +22,8 @@ clean:
 
 build:
 	cd ./../../images/splunk && docker build -t outcoldman/splunk-cluster:6.4.2 .
-	cd ./../../images/lb && docker build -t outcoldman/splunk-cluster-lb:6.4.2 .
-	cd ./../../images/consul && docker build -t outcoldman/splunk-cluster-consul:6.4.2 .
+	cd ./../../images/lb && docker build -t outcoldman/splunk-cluster:6.4.2-lb .
+	cd ./../../images/consul && docker build -t outcoldman/splunk-cluster:6.4.2-consul .
 
 
 deploy:
