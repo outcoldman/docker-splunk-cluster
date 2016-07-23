@@ -1,4 +1,36 @@
-# Cluster-aware Splunk Enterprise docker image 
+# Table of Contents
+
+- [Introduction](#introduction)
+    - [Version](#version)
+- [How it works](#how-it-works)
+    - [Cluster-aware image](#cluster-aware-image)
+        - [Configuration](#configuration)
+            - [License Master](#license-master)
+            - [License Slave](#license-slave)
+            - [Cluster Master](#cluster-master)
+            - [Cluster Search Head](#cluster-search-head)
+            - [Cluster Slave](#cluster-slave)
+            - [SHC Deployer](#shc-deployer)
+            - [SHC Member](#shc-member)
+            - [SHC Deployer Client](#shc-deployer-client)
+            - [HW Forwarder](#hw-forwarder)
+            - [DMC](#dmc)
+        - [Files listing in image](#files-listing-in-image)
+            - `/`
+            - `/deployment`
+    - [Load balancing image](#load-balancing-image)
+    - [Consul image](#consul-image)
+- [Use it](#use-it)
+    - [Deploy](#deploy)
+        - [On docker instance](#on-docker-instance)
+            - [If you do not have a License](#if-you-do-not-have-a-license)
+            - [If you have a Splunk Enterprise License](#if-you-have-a-splunk-enterprise-license)
+        - [On docker swarm](#on-docker-swarm)
+        - [On kubernetes](#on-kubernetes)
+    - [Examples after setup](#examples-after-setup)
+        - [Install application on SHC using SHC Deployer](#install-application-on-shc-using-shc-deployer)
+- [TODO](#todo)
+
 
 ## Introduction
 
@@ -14,7 +46,10 @@
 This repository contains set of examples how to run Splunk Enterprise cluster in Docker,
 including Search Head Cluster and Indexing Cluster.
 
-## Version
+The main purpose of this repository is to show how to automate Splunk Cluster deployment.
+Below you can find examples how to setup Cluster on Docker, Swarm Mode (1.12-rc4 has issues), Kubernetes (TODO).
+
+### Version
 
 Based on `outcoldman/splunk:6.4.2`.
 
@@ -236,6 +271,10 @@ Ports:
 
 > NOTE: consul is not secured by default.
 
+### Consul image
+
+Image based on `consul:v0.6.4`.
+
 ## Use it
 
 ### Deploy
@@ -252,7 +291,7 @@ This folder has two docker-compose files. One which does not require License Mas
 `docker-compose.yml` and second is an extension for the first one, which adds License Master node. `Makefile` in this folder
 deals with how `docker-compose` needs to be invoked.
 
-##### If you don't have a License
+##### If you do not have a License
 
 Build images.
 
@@ -367,6 +406,10 @@ To kill all docker machines use
 ```
 make setup-clean
 ```
+
+#### On kubernetes
+
+> TODO
 
 ### Examples after setup
 
