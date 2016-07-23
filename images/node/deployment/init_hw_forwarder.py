@@ -11,7 +11,8 @@ def configurations():
         "components": {
             "kvstore": False,
             "web": False,
-            "indexing": False
+            "indexing": False,
+            "dmc": False
         }
     }
 

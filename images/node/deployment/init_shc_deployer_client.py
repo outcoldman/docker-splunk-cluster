@@ -8,7 +8,8 @@ def configurations():
         "components": {
             "kvstore": False,
             "web": False,
-            "indexing": False
+            "indexing": False,
+            "dmc": False
         },
         # shc_deployer will be set only after first deploy, so do not depend on this role
         "dependencies": [

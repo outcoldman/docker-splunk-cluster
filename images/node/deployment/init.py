@@ -11,6 +11,7 @@ import init_license_slave
 import init_shc_deployer
 import init_shc_deployer_client
 import init_hw_forwarder
+import init_dmc
 
 import splunk.util
 
@@ -24,7 +25,8 @@ modules = {
     "LICENSE_SLAVE": init_license_slave,
     "SHC_DEPLOYER": init_shc_deployer,
     "SHC_DEPLOYER_CLIENT": init_shc_deployer_client,
-    "HW_FORWARDER": init_hw_forwarder
+    "HW_FORWARDER": init_hw_forwarder,
+    "DMC": init_dmc
 }
 
 
@@ -53,17 +55,18 @@ def main():
         kvstore = False
         web = False
         indexing = False
+        dmc = False
         dependencies = []
 
         for role in roles:
             module = modules.get(role.upper())
 
             substitution = module.substitution() if hasattr(module, "substitution") else {}
-            role_etc = os.path.join("/opt", "splunk-deployment", role, "etc")
+            role_etc = os.path.join("/opt", "splunk-deployment", role)
             if os.path.isdir(role_etc):
                 init_helpers.copy_etc_tree(
                     role_etc,
-                    os.path.join(os.environ['SPLUNK_HOME'], "etc"),
+                    os.path.join(os.environ['SPLUNK_HOME']),
                     substitution
                 )
 
@@ -71,6 +74,7 @@ def main():
             kvstore |= configurations.get("components", {}).get("kvstore", False)
             web |= configurations.get("components", {}).get("web", False)
             indexing |= configurations.get("components", {}).get("indexing", False)
+            dmc |= configurations.get("components", {}).get("dmc", False)
             dependencies.extend(configurations.get("dependencies", []))
 
             if hasattr(module, "before_start"):
@@ -85,33 +89,42 @@ def main():
         if "INIT_INDEXING_ENABLED" in os.environ:
             indexing = splunk.util.normalizeBoolean(os.environ.get("INIT_INDEXING_ENABLED"))
 
+        if "INIT_DMC" in os.environ:
+            indexing = splunk.util.normalizeBoolean(os.environ.get("INIT_DMC"))
+
         if not kvstore:
             init_helpers.copy_etc_tree(
-                os.path.join("/opt", "splunk-deployment", "_disable_kvstore", "etc"),
-                os.path.join(os.environ['SPLUNK_HOME'], "etc")
+                os.path.join("/opt", "splunk-deployment", "_disable_kvstore"),
+                os.path.join(os.environ['SPLUNK_HOME'])
             )
             init_helpers.splunk_clean_kvstore()
 
         if not web:
             init_helpers.copy_etc_tree(
-                os.path.join("/opt", "splunk-deployment", "_disable_web", "etc"),
-                os.path.join(os.environ['SPLUNK_HOME'], "etc")
+                os.path.join("/opt", "splunk-deployment", "_disable_web"),
+                os.path.join(os.environ['SPLUNK_HOME'])
             )
         else:
             prefix = os.environ.get("INIT_WEB_SETTINGS_PREFIX")
             if prefix:
                 init_helpers.set_web_prefix(prefix)
+            init_helpers.set_login_content("Roles:<br/><ul><li>" + "</li><li>".join(roles) + "</li></ul>")
 
         if not indexing:
             init_helpers.copy_etc_tree(
-                os.path.join("/opt", "splunk-deployment", "_disable_indexing", "etc"),
-                os.path.join(os.environ['SPLUNK_HOME'], "etc"),
+                os.path.join("/opt", "splunk-deployment", "_disable_indexing"),
+                os.path.join(os.environ['SPLUNK_HOME']),
                 {
                     "@INDEX_DISCOVERY_MASTER_URI@": os.environ.get("INIT_INDEX_DISCOVERY_MASTER_URI", "https://cluster-master:8089"),
                     "@INDEX_DISCOVERY_PASS_4_SYMM_KEY@": os.environ.get("INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY", "indexdiscovery-changeme")
                 }
             )
-            init_helpers.splunk_clean_index()
+
+        if not dmc:
+            init_helpers.copy_etc_tree(
+                os.path.join("/opt", "splunk-deployment", "_disable_dmc"),
+                os.path.join(os.environ['SPLUNK_HOME'])
+            )
 
         for dependency in dependencies:
             url, role = dependency

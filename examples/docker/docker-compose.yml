@@ -2,7 +2,7 @@ version: '2'
 services:
 
   license-master:
-    build: ./node/
+    build: ./../../images/node/
     container_name: license-master
     hostname: license-master
     depends_on:
@@ -17,6 +17,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     labels:
       splunk.cluster: "license-master"
     networks:
@@ -31,7 +32,7 @@ services:
         max-file: "5"
 
   cluster-master:
-    build: ./node/
+    build: ./../../images/node/
     container_name: cluster-master
     hostname: cluster-master
     depends_on:
@@ -52,6 +53,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -66,7 +68,7 @@ services:
         max-file: "5"
 
   shc-deployer:
-    build: ./node/
+    build: ./../../images/node/
     container_name: shc-deployer
     hostname: shc-deployer
     depends_on:
@@ -80,6 +82,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     labels:
       splunk.cluster: "shc-deployer"
     networks:
@@ -94,7 +97,7 @@ services:
         max-file: "5"
 
   shc-member:
-    build: ./node/
+    build: ./../../images/node/
     depends_on:
       - shc-deployer
       - license-master
@@ -117,6 +120,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     labels:
       splunk.cluster: "shc-member"
     networks:
@@ -129,7 +133,7 @@ services:
         max-file: "5"
 
   cluster-slave:
-    build: ./node/
+    build: ./../../images/node/
     depends_on:
       - cluster-master
       - license-master
@@ -144,6 +148,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     labels:
       splunk.cluster: "cluster-slave"
     networks:
@@ -156,7 +161,7 @@ services:
         max-file: "5"
 
   dmc:
-    build: ./node/
+    build: ./../../images/node/
     container_name: dmc
     hostname: dmc
     depends_on:
@@ -165,7 +170,7 @@ services:
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=license_slave,cluster_searchhead
+      - SPLUNK_ROLES=license_slave,cluster_searchhead,dmc
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
@@ -176,6 +181,7 @@ services:
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     labels:
       splunk.cluster: "dmc"
     networks:
@@ -190,7 +196,7 @@ services:
         max-file: "5"
 
   consul:
-    build: ./consul/
+    build: ./../../images/consul/
     container_name: consul
     hostname: consul
     restart: always
@@ -207,29 +213,31 @@ services:
       - CONSUL_CLIENT=0.0.0.0
       - CONSUL_BOOTSTRAP_EXPECT=1
       - CONSUL_JOIN=consul
+      - CONSUL_ADVERTISE_INTERFACE=eth2
     logging:
       driver: "json-file"
       options:
         max-size: "1m"
         max-file: "5"
 
-  hw_forwarder:
-    build: ./node/
+  hw-forwarder:
+    build: ./../../images/node/
     environment: 
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_ROLES=hw_forwarder
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
+      - INIT_ADD_UDP_PORT=1514
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
-      - INIT_ADD_UDP_PORT=1514
+      - CONSUL_ADVERTISE_INTERFACE=eth1
     networks:
       splunk:
         aliases:
           - hw_forwarder
     labels:
-      splunk.cluster: "hw_forwarder"
+      splunk.cluster: "hw-forwarder"
     restart: always
     logging:
       driver: "json-file"
@@ -238,12 +246,12 @@ services:
         max-file: "5"
 
   lb:
-    build: ./lb/
+    build: ./../../images/lb/
     container_name: lb
     hostname: lb
     depends_on:
       - consul
-      - hw_forwarder
+      - hw-forwarder
     environment: 
       - CONSUL_HOST=consul:8500
       - CONSUL_DC=dc
@@ -259,6 +267,7 @@ services:
       - 8000:8000
       - 8100:8100
       - 8200:8200
+      - 8300:8300
       - 8500:8500
     logging:
       driver: "json-file"

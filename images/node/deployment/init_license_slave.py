@@ -8,7 +8,8 @@ def configurations():
         "components": {
             "kvstore": False,
             "web": False,
-            "indexing": False
+            "indexing": False,
+            "dmc": False
         },
         "dependencies": [
             ("https://license-master:8089", "license_master")

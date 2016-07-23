@@ -52,9 +52,10 @@ cluster initialization.
     - `shc_deployer_client`
     - `hw_forwarder`
 
-- `INIT_KVSTORE_ENABLED` - force to enable KVStore.
-- `INIT_WEB_ENABLED` - force to enable Web.
-- `INIT_INDEXING_ENABLED` - force to enable Indexing.
+- `INIT_KVSTORE_ENABLED` - force to enable/disable KVStore.
+- `INIT_WEB_ENABLED` - force to enable/disable Web.
+- `INIT_INDEXING_ENABLED` - force to enable/disable Indexing.
+- `INIT_DMC` - force to enable/disable DMC app.
 - `INIT_WEB_SETTINGS_PREFIX` - set prefix for Web.
 - `INIT_INDEX_DISCOVERY_MASTER_URI` - sets uri to Cluster Master with enabled Index Discovery. When indexing is off. Defaults to `https://cluster-master:8089`.
 - `INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY` - set index discovery `pass4SymmKey`. When indexing is off. Defaults to `indexdiscovery-changeme`.
@@ -65,6 +66,7 @@ cluster initialization.
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
 
@@ -76,6 +78,7 @@ add this license to the pool
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
 - `INIT_LICENSE_MASTER` - uri to License Master. Defaults to `https://license-master:8089`.
@@ -86,6 +89,7 @@ add this license to the pool
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - Sets `repFactor = auto` for all default indexes. This configuration will be deployed to indexers using `master-apps` folder.
 - Sets up index discovery.
@@ -102,6 +106,7 @@ add this license to the pool
 - Require KVStore.
 - Require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - Sets clustering `mode = searchhead`.
 
@@ -116,6 +121,7 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Require Indexing.
+- Does not require DMC app.
 
 - Sets clustering `mode = slave`.
 - Enables listening on `9997` for forwarded data.
@@ -131,6 +137,7 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
 
@@ -139,6 +146,7 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 - Require KVStore.
 - Require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
 - `INIT_SHCLUSTERING_MGMT_URI` - set management uri of current server. Defaults to `https://$HOSTNAME:8089`.
@@ -157,6 +165,7 @@ does bootstrapping of SHC, if larger - adds itself to Search Head Cluster.
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - `INIT_SHCLUSTERING_SHCDEPLOYER` - set uri to Search Head Cluster deployer. Defaults to `https://shc-deployer:8089`.
 
@@ -168,9 +177,19 @@ Search Head Cluster Deployer defined with `INIT_SHCLUSTERING_SHCDEPLOYER`.
 - Does not require KVStore.
 - Does not require Splunk Web.
 - Does not require Indexing.
+- Does not require DMC app.
 
 - `INIT_ADD_UDP_PORT` - add listening on port defined with this variable, sets `connection_host = dns`,
     `index = splunkcluster` and register this as a service in consul with name `syslog`.
+
+##### DMC
+
+- Does not require KVStore.
+- Require Splunk Web.
+- Does not require Indexing.
+- Require DMC app.
+
+> TODO: dashboards are not configured
 
 #### Files listing in image
 
@@ -224,6 +243,10 @@ add this license to the pool, without that you will see errors in `_internal` in
 > NOTE2: If you are using Docker for Mac - it allocates just 2Gb by default, not enough for this demo. Set more. Maybe 8Gb.
 
 ```
+cd ./examples/docker
+```
+
+```
 docker-compose build
 docker-compose up -d
 docker-compose scale cluster-slave=4 shc-member=3
@@ -243,9 +266,54 @@ You can scale up later with
 docker-compose scale cluster-slave=8 shc-member=5
 ```
 
+To clean use
+
+```
+docker-compose kill
+docker-compose rm -v -f
+```
+
 #### On docker swarm
 
-> TODO...
+> In progress
+> TODO: seems like docker swarm mode in 1.12-rc4 has issue with network discovery. So example does not work.
+
+```
+cd ./examples/docker-swarm-mode
+```
+
+Prepare swarm. This command will create 4 docker-machine instances in VirtualBox.
+One instance is a docker registry. Another 3 will be part of Swarm cluster.
+
+```
+make setup
+```
+
+Do all steps from echoed from command above (two nodes need to join swarm cluster and create a network).
+
+Build images. This command will build images and publish to local registry.
+
+```
+make build
+```
+
+Deploy cluster.
+
+```
+make deploy
+```
+
+To clean splunk cluster use
+
+```
+make clean
+```
+
+To kill all docker machines use
+
+```
+make setup-clean
+```
 
 ### Examples after setup
 
@@ -265,16 +333,11 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 - [ ] Forwarders
 - [ ] Encrypt consul communication
 - [ ] CA Authority. Do not skip certificate verification.
-- [ ] Send consul logs to Splunk
 - [ ] Check if there are better way to configure SSO (including trustedIP)
 - [ ] On SHC we should log IP addresses with "tools.proxy.on = True"
-- [ ] Use consul http checks for web and mgmt ports
 - [ ] Collecting logs from consul server
 - [ ] Upgrade to consul-template 0.16.0 rtm.
-- [ ] SHC Members require restart (possible SHC Deployer should do rolling restart after bootstrap)
-- [ ] Custom CA.
 - [ ] Secure by default `8500`.
-- [ ] Load balancer using hostnames instead of services for cluster-master, dmc and consul.
 - [ ] Expect `.lic` files in better place.
 - [ ] Use `socket` to get fqdn.
 - [ ] SHC Autobootstrap should support removed members.
