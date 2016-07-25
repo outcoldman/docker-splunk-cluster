@@ -1,4 +1,5 @@
 import os
+import socket
 
 import init_helpers
 import init_consul
@@ -36,7 +37,7 @@ def main():
     """
     roles = [role.upper() for role in os.environ.get("SPLUNK_ROLES", "").split(",")]
     if roles:
-        print "Initializing " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'..."
+        print "Initializing " + socket.getfqdn() + " as '" + ", ".join(roles) + "'..."
 
         # Wait for local instance
         init_helpers.wait_local()
@@ -144,7 +145,7 @@ def main():
             if hasattr(module, "after_start"):
                 module.after_start()
 
-        print "Initialized " + os.environ['HOSTNAME'] + " as '" + ", ".join(roles) + "'."
+        print "Initialized " + socket.getfqdn() + " as '" + ", ".join(roles) + "'."
 
 if __name__ == "__main__":
     main()

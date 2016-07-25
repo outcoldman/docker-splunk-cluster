@@ -3,6 +3,7 @@ import json
 import urllib
 import time
 import base64
+import socket
 
 import requests
 
@@ -25,7 +26,7 @@ def configurations():
 def substitution():
     return {
         "@SHCLUSTERING_PASS_4_SYMM_KEY@": os.environ.get("INIT_SHCLUSTERING_PASS_4_SYMM_KEY", "shclustering-changeme"),
-        "@SHCLUSTERING_MGMT_URI@": os.environ.get("INIT_SHCLUSTERING_MGMT_URI", "https://%s:8089" % os.environ['HOSTNAME']),
+        "@SHCLUSTERING_MGMT_URI@": os.environ.get("INIT_SHCLUSTERING_MGMT_URI", "https://%s:8089" % socket.getfqdn()),
         "@SHCLUSTERING_REPLICATION_FACTOR@": os.environ.get("INIT_SHCLUSTERING_REPLICATION_FACTOR", "3"),
         "@SHCLUSTERING_SHCLUSTER_LABEL@": os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")
     }
@@ -67,7 +68,7 @@ def verify_membership(consul_session_id):
     autobootstrap = int(os.environ.get("INIT_SHCLUSTER_AUTOBOOTSTRAP", "3"))
     key_bootstrap = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/lock/bootstrap"
     key_members = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/members"
-    key_member = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/members/" + urllib.quote(os.environ["HOSTNAME"])
+    key_member = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/members/" + urllib.quote(socket.getfqdn())
 
     for x in xrange(1, 1800):
         response = requests.put("http://127.0.0.1:8500/v1/kv/" + key_bootstrap, params={"acquire": consul_session_id})
@@ -77,7 +78,7 @@ def verify_membership(consul_session_id):
         print "Result of acquiring the bootstrap lock. %d. %s." % (response.status_code, response.text)
         locked = splunk.util.normalizeBoolean(response.text)
         if locked:
-            response = requests.put("http://127.0.0.1:8500/v1/kv/" + key_member, data=("https://%s:8089" % os.environ["HOSTNAME"]))
+            response = requests.put("http://127.0.0.1:8500/v1/kv/" + key_member, data=("https://%s:8089" % socket.getfqdn()))
             if response.status_code != 200:
                 print "Failed to save myself to members list. %d. %s." % (response.status_code, response.text)
                 exit(1)

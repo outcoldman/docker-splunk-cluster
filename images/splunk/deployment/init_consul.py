@@ -32,7 +32,10 @@ def register_splunkd_service(tags):
             "Script": "/opt/splunk/bin/splunk status",
             "Interval": "60s"
         }
-    })
+    }, checks=[{
+        "TCP": "127.0.0.1:8089",
+        "Interval": "60s"
+    }])
 
 
 def register_splunkweb_service(tags):
@@ -59,7 +62,7 @@ def register_kvstore_service(tags):
     })
 
 
-def register_service(service):
+def register_service(service, checks=None):
     """
     Register local Service
     """
@@ -68,8 +71,15 @@ def register_service(service):
             response = requests.put("http://127.0.0.1:8500/v1/agent/service/register", data=json.dumps(service))
             if response.status_code != 200:
                 print "Failed to register service. %d. %s." % (response.status_code, response.text) 
-                exit(1)
+                continue
             print "Result of registering myself as a consul service. %d. %s." % (response.status_code, response.text)
+            if checks:
+                for check in checks:
+                    response = requests.put("http://127.0.0.1:8500/v1/agent/check/register", data=json.dumps(check))
+                    if response.status_code != 200:
+                        print "Failed to register additional check. %d. %s." % (response.status_code, response.text) 
+                        continue
+                    print "Result of registering additional check. %d. %s." % (response.status_code, response.text)
             return
         except requests.exceptions.RequestException:
             print "Waiting for local consul."
