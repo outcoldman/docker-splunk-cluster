@@ -8,7 +8,7 @@ build-lm: build
 
 deploy-lm:
 	test -f *.lic
-	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml create license-master
+	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml up -d license-master
 	docker cp *.lic $$(docker ps -qa --filter=label=splunk.cluster=license-master):/opt/splunk-deployment/licenses/
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml up -d
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=4 shc-member=3
