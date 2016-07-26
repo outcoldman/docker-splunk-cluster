@@ -431,10 +431,16 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 - [ ] CA Authority. Do not skip certificate verification.
 - [ ] Check if there are better way to configure SSO (including trustedIP)
 - [ ] On SHC we should log IP addresses with "tools.proxy.on = True"
-- [ ] Collecting logs from consul server
 - [ ] Upgrade to consul-template 0.16.0 rtm.
 - [ ] Secure by default `8500`.
-- [ ] Use `socket` to get fqdn.
 - [ ] SHC Autobootstrap should support removed members.
-- [ ] Make all consul requests with retry.
 - [ ] Possible issues with permissions.
+- [ ] Verify that LB works while adding/removing members
+
+## Used tools
+
+- [consul](https://www.consul.io)
+- [consul-template](https://github.com/hashicorp/consul-template)
+- [haproxy](http://www.haproxy.org)
+- [supervisor](http://supervisord.org)
+- [supervisor-logging](https://github.com/infoxchange/supervisor-logging)

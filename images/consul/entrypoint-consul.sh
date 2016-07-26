@@ -1,6 +1,6 @@
 #!/bin/sh
 
-/usr/local/bin/docker-entrypoint.sh \
+/bin/consul \
     agent \
     -bootstrap-expect=${CONSUL_BOOTSTRAP_EXPECT:-"1"} \
     -data-dir=${CONSUL_DATA_DIR:-"/consul/data"} \
@@ -10,4 +10,5 @@
     -ui \
     -client=${CONSUL_CLIENT:-"0.0.0.0"} \
     -advertise=$(ip addr list ${CONSUL_ADVERTISE_INTERFACE:-eth0} |grep "inet " |cut -d' ' -f6|cut -d/ -f1) \
-    -retry-join=${CONSUL_JOIN:-"consul"}
+    -retry-join=${CONSUL_JOIN:-"consul"} \
+    -config-file="/etc/consul/consul.json"

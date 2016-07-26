@@ -172,6 +172,9 @@ services:
       - CONSUL_BOOTSTRAP_EXPECT=1
       - CONSUL_JOIN=consul
       - CONSUL_ADVERTISE_INTERFACE=eth0
+      - SYSLOG_SERVER=hw_forwarder
+      - SYSLOG_PORT=1514
+      - SYSLOG_PROTO=udp
     logging:
       driver: "json-file"
       options:
@@ -211,9 +214,13 @@ services:
       - consul
       - hw-forwarder
     environment: 
-      - CONSUL_HOST=consul:8500
+      - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
+      - CONSUL_ADVERTISE_INTERFACE=eth0
+      - SYSLOG_SERVER=hw_forwarder
+      - SYSLOG_PORT=1514
+      - SYSLOG_PROTO=udp
     labels:
       splunk.cluster: "lb"
     networks:

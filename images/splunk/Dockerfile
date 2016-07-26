@@ -24,6 +24,7 @@ COPY deployment /opt/splunk-deployment/
 COPY indexes.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/indexes.conf
 COPY inputs.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/inputs.conf
 COPY consul.sh ${SPLUNK_HOME}/bin/scripts/consul.sh
+COPY consul.json ${SPLUNK_HOME}/bin/scripts/consul.json
 
 RUN chmod +x ${SPLUNK_HOME}/bin/scripts/consul.sh
 
