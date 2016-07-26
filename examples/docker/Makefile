@@ -11,7 +11,7 @@ deploy-lm:
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml up -d license-master
 	docker cp *.lic $$(docker ps -qa --filter=label=splunk.cluster=license-master):/opt/splunk-deployment/licenses/
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml up -d
-	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=4 shc-member=3
+	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=4 shc-member=3 data-collector-hec=2
 	@echo "Use 'docker-compose -f docker-compose.yml -f docker-compose.license-master.yml logs -f cluster-master' to wait for Initialized cluster-master as Cluster Master"
 
 # Without license master
@@ -28,5 +28,5 @@ build:
 
 deploy:
 	docker-compose -f docker-compose.yml up -d
-	docker-compose -f docker-compose.yml scale cluster-slave=4 shc-member=3
+	docker-compose -f docker-compose.yml scale cluster-slave=4 shc-member=3 data-collector-hec=2
 	@echo "Use 'docker-compose -f docker-compose.yml -f docker-compose.license-master.yml logs -f cluster-master' to wait for Initialized cluster-master as Cluster Master"

@@ -3,6 +3,7 @@ import os
 import init_helpers
 import init_consul
 
+import splunk.util
 import splunk.clilib.cli_common
 
 
@@ -36,4 +37,16 @@ def after_start():
             "Name": "syslog",
             "Tags": ["splunk", "udp"],
             "Port": int(udp_port)
+        })
+    public_hec = splunk.util.normalizeBoolean(os.environ.get("INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR", False))
+    internal_hec = splunk.util.normalizeBoolean(os.environ.get("INIT_REGISTER_INTERNAL_HTTP_EVENT_COLLECTOR", False))
+    if public_hec or internal_hec:
+        tags = []
+        if public_hec:
+            tags.append("public")
+        if internal_hec:
+            tags.append("internal")
+        init_consul.register_service({
+            "Name": "http_event_collector",
+            "Tags": tags
         })

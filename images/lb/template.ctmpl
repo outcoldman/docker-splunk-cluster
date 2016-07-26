@@ -12,15 +12,10 @@ defaults{{range service "syslog"}}
 # SHC
 # See http://blogs.splunk.com/2015/06/04/configuring-haproxy-splunk-with-rest-api-sdk-compatability/
 
-frontend http-in-8000
+listen http-in-shc
     log global
     option forwardfor except 127.0.0.1
     bind :8000
-    default_backend splunk-shc-http
-
-backend splunk-shc-http
-    log global
-    option forwardfor
     balance roundrobin
     cookie SERVERID insert indirect nocache
     {{range service "SHC_MEMBER.splunkweb"}}
@@ -30,7 +25,7 @@ backend splunk-shc-http
 
 listen http-in-cluster-master
     log global
-    bind :8100
+    bind :8010
     {{range service "CLUSTER_MASTER.splunkweb"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 
@@ -38,7 +33,7 @@ listen http-in-cluster-master
 
 listen http-in-dmc
     log global
-    bind :8200
+    bind :8020
     {{range service "DMC.splunkweb"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 
@@ -46,8 +41,23 @@ listen http-in-dmc
 
 listen http-in-license-master
     log global
-    bind :8300
+    bind :8030
     {{range service "LICENSE_MASTER.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
+
+# Deployment Server
+
+listen http-in-deployment-server
+    log global
+    bind :8040
+    {{range service "DEPLOYMENT_SERVER.splunkweb"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
+
+listen tcp-in-deployment-server-for-clients
+    log global
+    bind :8089
+    mode tcp
+    {{range service "public.DeploymentServer"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 
 # Consul
@@ -57,3 +67,13 @@ listen http-in-consul
     bind :8500
     {{range service "consul"}}
     server {{.Node}} {{.Address}}:8500{{end}}
+
+# HEC
+
+listen http-in-shc
+    log global
+    mode tcp
+    bind :8088
+    balance roundrobin
+    {{range service "public.http_event_collector"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}

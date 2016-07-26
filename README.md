@@ -425,8 +425,7 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 
 - [ ] Secret storage for getting secrets (currently everything is in plain text from env variables). Might use Vault from HashiCorp.
 - [ ] DMC Server (with all configurations setup automatically)
-- [ ] Deployment Server
-- [ ] Forwarders
+- [ ] Deployment Server listen on 8089, HAProxy forwards TCP, should we implement it better?
 - [ ] Encrypt consul communication
 - [ ] CA Authority. Do not skip certificate verification.
 - [ ] Check if there are better way to configure SSO (including trustedIP)
@@ -436,6 +435,7 @@ docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart tr
 - [ ] SHC Autobootstrap should support removed members.
 - [ ] Possible issues with permissions.
 - [ ] Verify that LB works while adding/removing members
+- [ ] LDAP
 
 ## Used tools
 

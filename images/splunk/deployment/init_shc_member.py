@@ -5,8 +5,6 @@ import time
 import base64
 import socket
 
-import requests
-
 import splunk.util
 
 import init_helpers

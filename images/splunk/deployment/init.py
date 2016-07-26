@@ -11,8 +11,10 @@ import init_license_master
 import init_license_slave
 import init_shc_deployer
 import init_shc_deployer_client
-import init_hw_forwarder
+import init_data_collector
 import init_dmc
+import init_deployment_server
+import init_deployment_client
 
 import splunk.util
 
@@ -26,8 +28,10 @@ modules = {
     "LICENSE_SLAVE": init_license_slave,
     "SHC_DEPLOYER": init_shc_deployer,
     "SHC_DEPLOYER_CLIENT": init_shc_deployer_client,
-    "HW_FORWARDER": init_hw_forwarder,
-    "DMC": init_dmc
+    "DATA_COLLECTOR": init_data_collector,
+    "DMC": init_dmc,
+    "DEPLOYMENT_SERVER": init_deployment_server,
+    "DEPLOYMENT_CLIENT": init_deployment_client
 }
 
 
