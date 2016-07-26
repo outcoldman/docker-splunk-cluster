@@ -31,6 +31,14 @@ modules = {
 }
 
 
+components = [
+    "dmc",
+    "indexing",
+    "kvstore",
+    "web"
+]
+
+
 def main():
     """
     Initialize node
@@ -53,11 +61,8 @@ def main():
 
         init_helpers.splunk_stop()
 
-        kvstore = False
-        web = False
-        indexing = False
-        dmc = False
         dependencies = []
+        splunk_components = dict((component, False) for component in components)
 
         for role in roles:
             module = modules.get(role.upper())
@@ -72,35 +77,27 @@ def main():
                 )
 
             configurations = module.configurations() if hasattr(module, "configurations") else {}
-            kvstore |= configurations.get("components", {}).get("kvstore", False)
-            web |= configurations.get("components", {}).get("web", False)
-            indexing |= configurations.get("components", {}).get("indexing", False)
-            dmc |= configurations.get("components", {}).get("dmc", False)
+            module_components = configurations.get("components", {})
+            for component in components:
+                splunk_components[component] |= module_components.get(component, False)
             dependencies.extend(configurations.get("dependencies", []))
 
             if hasattr(module, "before_start"):
                 module.before_start()
 
-        if "INIT_KVSTORE_ENABLED" in os.environ:
-            kvstore = splunk.util.normalizeBoolean(os.environ.get("INIT_KVSTORE_ENABLED"))
+        for component in components:
+            envvar = "INIT_%s_ENABLED" % component.upper()
+            if envvar in os.environ:
+                splunk_components[component] = splunk.util.normalizeBoolean(os.environ.get(envvar))
 
-        if "INIT_WEB_ENABLED" in os.environ:
-            web = splunk.util.normalizeBoolean(os.environ.get("INIT_WEB_ENABLED"))
-
-        if "INIT_INDEXING_ENABLED" in os.environ:
-            indexing = splunk.util.normalizeBoolean(os.environ.get("INIT_INDEXING_ENABLED"))
-
-        if "INIT_DMC" in os.environ:
-            indexing = splunk.util.normalizeBoolean(os.environ.get("INIT_DMC"))
-
-        if not kvstore:
+        if not splunk_components["kvstore"]:
             init_helpers.copy_etc_tree(
                 os.path.join("/opt", "splunk-deployment", "_disable_kvstore"),
                 os.path.join(os.environ['SPLUNK_HOME'])
             )
             init_helpers.splunk_clean_kvstore()
 
-        if not web:
+        if not splunk_components["web"]:
             init_helpers.copy_etc_tree(
                 os.path.join("/opt", "splunk-deployment", "_disable_web"),
                 os.path.join(os.environ['SPLUNK_HOME'])
@@ -111,7 +108,7 @@ def main():
                 init_helpers.set_web_prefix(prefix)
             init_helpers.set_login_content("Roles:<br/><ul><li>" + "</li><li>".join(roles) + "</li></ul>")
 
-        if not indexing:
+        if not splunk_components["indexing"]:
             init_helpers.copy_etc_tree(
                 os.path.join("/opt", "splunk-deployment", "_disable_indexing"),
                 os.path.join(os.environ['SPLUNK_HOME']),
@@ -121,7 +118,7 @@ def main():
                 }
             )
 
-        if not dmc:
+        if not splunk_components["dmc"]:
             init_helpers.copy_etc_tree(
                 os.path.join("/opt", "splunk-deployment", "_disable_dmc"),
                 os.path.join(os.environ['SPLUNK_HOME'])
@@ -135,9 +132,9 @@ def main():
 
         init_consul.wait_consul()
         init_consul.register_splunkd_service(roles)
-        if web:
+        if splunk_components["web"]:
             init_consul.register_splunkweb_service(roles)
-        if kvstore:
+        if splunk_components["kvstore"]:
             init_consul.register_kvstore_service(roles)
 
         for role in roles:

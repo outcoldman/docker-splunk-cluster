@@ -12,7 +12,7 @@ def configurations():
             "dmc": False
         },
         "dependencies": [
-            ("https://license-master:8089", "license_master")
+            (os.environ.get("INIT_LICENSE_MASTER", "https://license-master:8089"), "license_master")
         ]
     }
 
