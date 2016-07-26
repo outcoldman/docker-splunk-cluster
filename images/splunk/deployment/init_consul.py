@@ -1,8 +1,37 @@
 import os
 import json
 import time
+import copy
 
 import requests
+
+
+def consul_get(path, **kwargs):
+    for x in xrange(1, 300):
+        try:
+            response = requests.get("http://127.0.0.1:8500/v1" + path, **kwargs)
+            if response.status_code == 200:
+                return response
+            print "Failed to make GET request to consul. Response = %d, Leader = %s." % (response.status_code, response.text)
+        except requests.exceptions.RequestException as ex:
+            print "Failed to make GET request to consul. " + str(ex)
+        time.sleep(1)
+    print "FAILED. Could not make GET request to consul."
+    exit(1)
+
+
+def consul_put(path, **kwargs):
+    for x in xrange(1, 300):
+        try:
+            response = requests.put("http://127.0.0.1:8500/v1" + path, **kwargs)
+            if response.status_code == 200:
+                return response
+            print "Failed to make PUT request to consul. Response = %d, Leader = %s." % (response.status_code, response.text)
+        except requests.exceptions.RequestException as ex:
+            print "Failed to make PUT request to consul. " + str(ex)
+        time.sleep(1)
+    print "FAILED. Could not make PUT request to consul."
+    exit(1)
 
 
 def wait_consul():
@@ -10,16 +39,13 @@ def wait_consul():
     We start consul using scripting input, which might require us to wait when it will be up.
     """
     for x in xrange(1, 300):
-        try:
-            response = requests.get("http://127.0.0.1:8500/v1/status/leader")
-            if response.status_code == 200 and response.text:
-                print "Consul is ready. Response = %d, Leader = %s." % (response.status_code, response.text)
-                return
-            print "Waiting for local consul. Response = %d, Leader = %s." % (response.status_code, response.text)
-        except requests.exceptions.RequestException:
-            print "Waiting for local consul."
+        response = consul_get("/status/leader")
+        if response.text:
+            return
+        else:
+            print "Waiting for consul leader. Leader = %s." % response.text
         time.sleep(1)
-    print "Failed to connect to local consul."
+    print "FAILED. Consul did not have a leader."
     exit(1)
 
 
@@ -28,11 +54,13 @@ def register_splunkd_service(tags):
         "Name": "splunkd",
         "Tags": tags,
         "Port": 8089,
-        "Check": {
-            "Script": "/opt/splunk/bin/splunk status",
-            "Interval": "60s"
-        }
-    })
+    }, checks=[{
+        "TCP": "127.0.0.1:8089",
+        "Interval": "60s"
+    }, {
+        "Script": "/opt/splunk/bin/splunk status",
+        "Interval": "60s"
+    }])
 
 
 def register_splunkweb_service(tags):
@@ -40,11 +68,10 @@ def register_splunkweb_service(tags):
         "Name": "splunkweb",
         "Tags": tags,
         "Port": 8000,
-        "Check": {
+    }, checks=[{
             "HTTP": "http://127.0.0.1:8000/robots.txt",
             "Interval": "60s"
-        }
-    })
+    }])
 
 
 def register_kvstore_service(tags):
@@ -52,27 +79,22 @@ def register_kvstore_service(tags):
         "Name": "kvstore",
         "Tags": tags,
         "Port": 8191, 
-        "Check": {
-            "TCP": "127.0.0.1:8191",
-            "Interval": "60s"
-        }
-    })
+    }, checks=[{
+        "TCP": "127.0.0.1:8191",
+        "Interval": "60s"
+    }])
 
 
-def register_service(service):
+def register_service(service, checks=None):
     """
     Register local Service
     """
-    for x in xrange(1, 300):
-        try:
-            response = requests.put("http://127.0.0.1:8500/v1/agent/service/register", data=json.dumps(service))
-            if response.status_code != 200:
-                print "Failed to register service. %d. %s." % (response.status_code, response.text) 
-                exit(1)
-            print "Result of registering myself as a consul service. %d. %s." % (response.status_code, response.text)
-            return
-        except requests.exceptions.RequestException:
-            print "Waiting for local consul."
-        time.sleep(1)
-    print "Failed to connect to local consul."
-    exit(1)
+    response = consul_put("/agent/service/register", data=json.dumps(service))
+    print "Registered Service: " + service["Name"]
+    if checks:
+        for index, check in enumerate(checks):
+            check = copy.copy(check)
+            check["Service"] = service["Name"]
+            check["Name"] = "Check for %s - %d" % (service["Name"], index + 1) 
+            response = consul_put("/agent/check/register", data=json.dumps(check))
+            print "Registered additional check: %s." % check["Name"]
