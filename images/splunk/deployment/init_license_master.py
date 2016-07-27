@@ -34,13 +34,15 @@ def add_licenses():
         if os.path.isdir(os.path.join("/opt", "splunk-deployment", "licenses")):
             licenses = glob.glob(os.path.join("/opt", "splunk-deployment", "licenses", "*.lic"))
             if licenses:
-                args = [
-                    "add",
-                    "licenses",
-                    "-auth", "admin:changeme"
-                ]
-                args.extend(licenses)
-                init_helpers.splunk_execute(args)
+                # Adding all licenses one by one and break
+                for license in licenses:
+                    args = [
+                        "add",
+                        "licenses",
+                        "-auth", "admin:changeme",
+                        license
+                    ]
+                    init_helpers.splunk_execute(args)
                 break
 
         if splunk.util.normalizeBoolean(os.environ.get("INIT_WAIT_LICENSE", "False")):
