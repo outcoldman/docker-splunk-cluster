@@ -48,5 +48,6 @@ def after_start():
             tags.append("internal")
         init_consul.register_service({
             "Name": "http_event_collector",
+            "Port": 8088,
             "Tags": tags
         })

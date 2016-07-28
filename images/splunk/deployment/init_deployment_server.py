@@ -35,7 +35,10 @@ def before_start():
 
         serverclass_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "serverclass.conf")
         conf = splunk.clilib.cli_common.readConfFile(serverclass_conf) if os.path.exists(serverclass_conf) else {}
-        conf["serverClass:data-collector-hec:app:splunk_httpinput"] = {}
+        conf["serverClass:data-collector-hec:app:splunk_httpinput"] = {
+            "restartSplunkd": True,
+            "stateOnClient": "enabled"
+        }
         conf["serverClass:data-collector-hec"] = {
             "whitelist.0": os.environ.get("INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR", "data-collector-hec")
         }
@@ -46,8 +49,15 @@ def before_start():
         conf = splunk.clilib.cli_common.readConfFile(splunk_httpinput_inputs_conf) if os.path.exists(splunk_httpinput_inputs_conf) else {}
         conf["http"] = {
             "disabled": False,
-            "useDeploymentServer": True
+            "useDeploymentServer": False
         }
+
+        if "INIT_HTTP_EVENT_COLLECTOR_TOKEN" in os.environ:
+            conf["http://" + os.environ.get("INIT_HTTP_EVENT_COLLECTOR_TOKEN_NAME", "default")] = {
+                "disabled": False,
+                "token": os.environ["INIT_HTTP_EVENT_COLLECTOR_TOKEN"]
+            }
+
         init_helpers.mkdir_p(splunk_httpinput_local)
         splunk.clilib.cli_common.writeConfFile(splunk_httpinput_inputs_conf, conf)
 
