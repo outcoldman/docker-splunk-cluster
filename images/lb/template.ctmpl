@@ -65,8 +65,7 @@ listen tcp-in-deployment-server-for-clients
 listen http-in-consul
     log global
     bind :8500
-    {{range service "consul"}}
-    server {{.Node}} {{.Address}}:8500{{end}}
+    server localhost 127.0.0.1:8499
 
 # HEC
 
