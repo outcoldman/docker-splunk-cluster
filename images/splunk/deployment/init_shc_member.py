@@ -4,6 +4,7 @@ import urllib
 import time
 import base64
 import socket
+import subprocess
 
 import splunk.util
 
@@ -25,7 +26,7 @@ def configurations():
 def substitution():
     return {
         "@SHCLUSTERING_PASS_4_SYMM_KEY@": os.environ.get("INIT_SHCLUSTERING_PASS_4_SYMM_KEY", "shclustering-changeme"),
-        "@SHCLUSTERING_MGMT_URI@": os.environ.get("INIT_SHCLUSTERING_MGMT_URI", "https://%s:8089" % socket.getfqdn()),
+        "@SHCLUSTERING_MGMT_URI@": os.environ.get("INIT_SHCLUSTERING_MGMT_URI", "https://%s:8089" % _get_host_address()),
         "@SHCLUSTERING_REPLICATION_FACTOR@": os.environ.get("INIT_SHCLUSTERING_REPLICATION_FACTOR", "3"),
         "@SHCLUSTERING_SHCLUSTER_LABEL@": os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")
     }
@@ -61,14 +62,14 @@ def verify_membership(consul_session_id):
     autobootstrap = int(os.environ.get("INIT_SHCLUSTER_AUTOBOOTSTRAP", "3"))
     key_bootstrap = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/lock/bootstrap"
     key_members = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/members"
-    key_member = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/members/" + urllib.quote(socket.getfqdn())
+    key_member = urllib.quote(os.environ.get("INIT_SHCLUSTERING_SHCLUSTER_LABEL", "shcluster")) + "/members/" + urllib.quote(_get_host_address())
 
     for x in xrange(1, 1800):
         response = init_consul.consul_put("/kv/" + key_bootstrap, params={"acquire": consul_session_id})
         print "Result of acquiring the bootstrap lock. %d. %s." % (response.status_code, response.text)
         locked = splunk.util.normalizeBoolean(response.text)
         if locked:
-            response = init_consul.consul_put("/kv/" + key_member, data=("https://%s:8089" % socket.getfqdn()))
+            response = init_consul.consul_put("/kv/" + key_member, data=("https://%s:8089" % _get_host_address()))
             print "Result of saving myself to members list. %d. %s." % (response.status_code, response.text)
             response = init_consul.consul_get("/kv/" + key_members, params={"recurse": True})
             print "Result of getting members list. %d. %s." % (response.status_code, response.text)
@@ -97,3 +98,13 @@ def verify_membership(consul_session_id):
             # We are done
             return
         time.sleep(1)
+
+
+def _get_host_address():
+    host_resolver = os.environ.get("INIT_SHC_HOST_RESOLVER", "fqdn").lower()
+    if host_resolver == "fqdn":
+        return socket.getfqdn()
+    if host_resolver.startswith("ip."):
+        return subprocess.check_output('ip addr list %s | grep "inet " | cut -d\' \' -f6 | cut -d/ -f1 | head -1' % host_resolver[3:], shell=True).strip()
+    print "Unexpected value of INIT_SHC_HOST_RESOLVER=" + host_resolver
+    exit(1)

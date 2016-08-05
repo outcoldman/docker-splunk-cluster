@@ -3,7 +3,7 @@
 /bin/consul \
     agent \
     -bootstrap-expect=${CONSUL_BOOTSTRAP_EXPECT:-"1"} \
-    -data-dir=${CONSUL_DATA_DIR:-"/consul/data"} \
+    -data-dir=${CONSUL_DATA_DIR:-"/var/consul/data"} \
     -dc=${CONSUL_DC:-"dc"} \
     -domain=${CONSUL_DOMAIN:-"splunk"} \
     -server \

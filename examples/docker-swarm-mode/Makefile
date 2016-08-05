@@ -1,3 +1,5 @@
+SPLUNK_VERSION ?= 6.4.1
+
 setup-clean:
 	docker-machine rm -f registry splunk1 splunk2 splunk3
 
@@ -40,9 +42,9 @@ setup:
 	docker network create --driver=overlay splunk
 
 build:
-	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2 . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
-	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-lb . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-lb
-	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul
+	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
+	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
 
 deploy-consul:
 	docker service create \
@@ -55,7 +57,8 @@ deploy-consul:
 		--container-label splunk.cluster=consul \
 		--label splunk.cluster=consul \
 		--network splunk \
-		--env CONSUL_DATA_DIR="/consul/data" \
+		--mount 'type=volume,destination=/var/consul' \
+		--env CONSUL_DATA_DIR="/var/consul/data" \
 		--env CONSUL_DC="dc" \
 		--env CONSUL_DOMAIN="splunk" \
 		--env CONSUL_CLIENT="127.0.0.1" \
@@ -65,7 +68,7 @@ deploy-consul:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
 	docker service create \
 		--constraint "node.role != manager" \
 		--mode replicated \
@@ -75,7 +78,10 @@ deploy-consul:
 		--mode replicated \
 		--label splunk.cluster=consul \
 		--network splunk \
-		--env CONSUL_DATA_DIR="/consul/data" \
+		--update-parallelism=1 \
+		--update-delay 10s \
+		--mount 'type=volume,destination=/var/consul' \
+		--env CONSUL_DATA_DIR="/var/consul/data" \
 		--env CONSUL_DC="dc" \
 		--env CONSUL_DOMAIN="splunk" \
 		--env CONSUL_CLIENT="127.0.0.1" \
@@ -85,7 +91,7 @@ deploy-consul:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-consul
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
 
 deploy-data-collector-internal:
 	docker service create \
@@ -109,7 +115,7 @@ deploy-data-collector-internal:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-lb:
 	docker service create \
@@ -137,7 +143,7 @@ deploy-lb:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2-lb
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
 
 deploy-license-master:
 	ls *.lic 1> /dev/null 2>&1;
@@ -161,7 +167,7 @@ deploy-license-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 	while [[ "$$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master)" == "" ]]; do sleep 1; done
 	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master):/opt/splunk-deployment/licenses/
 
@@ -190,7 +196,7 @@ deploy-cluster-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-shc-deployer:
 	docker service create \
@@ -211,7 +217,7 @@ deploy-shc-deployer:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-shc-member:
 	docker service create \
@@ -222,6 +228,8 @@ deploy-shc-member:
 		--container-label splunk.cluster=shc-member \
 		--label splunk.cluster=shc-member \
 		--network splunk \
+		--update-parallelism=1 \
+		--update-delay 90s \
 		--env SPLUNK_START_ARGS=--accept-license \
 		--env SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead \
 		--env INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme \
@@ -235,11 +243,12 @@ deploy-shc-member:
 		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
 		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
 		--env INIT_SHCLUSTER_AUTOBOOTSTRAP=3 \
+		--env INIT_SHC_HOST_RESOLVER=ip.eth0 \
 		--env CONSUL_HOST=consul \
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-cluster-slave:
 	docker service create \
@@ -250,6 +259,8 @@ deploy-cluster-slave:
 		--container-label splunk.cluster=cluster-slave \
 		--label splunk.cluster=cluster-slave \
 		--network splunk \
+		--update-parallelism=1 \
+		--update-delay 90s \
 		--env SPLUNK_START_ARGS=--accept-license \
 		--env SPLUNK_ROLES=cluster_slave,license_slave \
 		--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
@@ -260,7 +271,7 @@ deploy-cluster-slave:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-dmc:
 	docker service create \
@@ -284,7 +295,7 @@ deploy-dmc:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-deployment-server:
 	docker service create \
@@ -308,7 +319,7 @@ deploy-deployment-server:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-data-collector-hec:
 	docker service create \
@@ -319,6 +330,8 @@ deploy-data-collector-hec:
 		--container-label splunk.cluster=data-collector-hec \
 		--label splunk.cluster=data-collector-hec \
 		--network splunk \
+		--update-parallelism=1 \
+		--update-delay 30s \
 		--env SPLUNK_START_ARGS=--accept-license \
 		--env SPLUNK_ROLES=data_collector,deployment_client \
 		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
@@ -331,10 +344,37 @@ deploy-data-collector-hec:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:6.4.2
+		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy: deploy-consul deploy-license-master deploy-cluster-master deploy-shc-deployer deploy-shc-member deploy-cluster-slave deploy-dmc deploy-data-collector-hec deploy-data-collector-internal deploy-lb deploy-deployment-server
 
 clean:
 	docker service rm consul consul-first license-master cluster-master shc-deployer shc-member cluster-slave dmc data-collector-hec data-collector-internal lb deployment-server
 
+upgrade:
+	@echo "Updating first consul"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul-first
+	@sleep 10
+	@echo "Updating consul cluster"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul
+	@sleep 20
+	@echo "Updating data-collector-internal"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-internal
+	@echo "Updating lb"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb lb
+	@echo "Updating license-master"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) license-master
+	@echo "Updating cluster-master"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-master
+	@echo "Updating shc-deployer"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-deployer
+	@echo "Updating dmc"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) dmc
+	@echo "Updating deployment-server"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) deployment-server
+	@echo "Updating data-collector-hec"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-hec
+	@echo "Updating shc-member"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-member
+	@echo "Updating cluster-slave"
+	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-slave

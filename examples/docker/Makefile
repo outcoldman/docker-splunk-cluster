@@ -1,5 +1,7 @@
 # With license master
 
+SPLUNK_VERSION=6.4.1
+
 clean-lm:
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml kill
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml rm -v -f
@@ -22,9 +24,9 @@ clean:
 	docker-compose -f docker-compose.yml rm -v -f
 
 build:
-	cd ./../../images/splunk && docker build -t outcoldman/splunk-cluster:6.4.2 .
-	cd ./../../images/lb && docker build -t outcoldman/splunk-cluster:6.4.2-lb .
-	cd ./../../images/consul && docker build -t outcoldman/splunk-cluster:6.4.2-consul .
+	cd ./../../images/splunk && docker build -t outcoldman/splunk-cluster:$(SPLUNK_VERSION) -t outcoldman/splunk-cluster:latest .
+	cd ./../../images/lb && docker build -t outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb -t outcoldman/splunk-cluster:latest-lb .
+	cd ./../../images/consul && docker build -t outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul -t outcoldman/splunk-cluster:latest-consul .
 
 
 deploy:
