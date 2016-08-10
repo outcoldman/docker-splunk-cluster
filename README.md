@@ -264,10 +264,11 @@ regenerates the `haproxy` configuration.
 Ports:
 
 - `8000` - load balances between SHC servers, using cookie `SERVERID`.
-- `8100` - redirects to Cluster Master.
-- `8200` - redirects to DMC.
-- `8300` - redirects to License Master.
-- `8500` - redirects to consul.
+- `8010` - redirects to Cluster Master.
+- `8020` - redirects to DMC.
+- `8030` - redirects to License Master.
+- `8040` - redirects to Deployment Server.
+- `8050` - redirects to consul.
 
 > NOTE: consul is not secured by default.
 
@@ -309,7 +310,7 @@ Watch for status of deployment:
 - Open `http://<docker>:8500` to watch for all green services and hosts.
 - Watch for `docker-compose logs -f shc-member` for the line `Successfully bootstrapped this node as the captain with the given servers.`.
     This will mean that SHC is bootstrapped.
-- Open Cluster Master web on `http://<docker>:8100` and check `Indexer Clustering: Master Node` page
+- Open Cluster Master web on `http://<docker>:8010` and check `Indexer Clustering: Master Node` page
     that Indexes are replicated and ready for search.
 - Open SHC on `http://<docker>:8000` and check that you see logs from all instances `index="_internal" | stats count by host`.
 
@@ -346,7 +347,7 @@ Watch for status of deployment:
 - Open `http://<docker>:8500` to watch for all green services and hosts.
 - Watch for `docker-compose logs -f shc-member` for the line `Successfully bootstrapped this node as the captain with the given servers.`.
     This will mean that SHC is bootstrapped.
-- Open Cluster Master web on `http://<docker>:8100` and check `Indexer Clustering: Master Node` page
+- Open Cluster Master web on `http://<docker>:8010` and check `Indexer Clustering: Master Node` page
     that Indexes are replicated and ready for search.
 - Open SHC on `http://<docker>:8000` and check that you see logs from all instances `index="_internal" | stats count by host`.
 

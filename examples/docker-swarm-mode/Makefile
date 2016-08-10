@@ -1,4 +1,4 @@
-SPLUNK_VERSION ?= 6.4.1
+SPLUNK_VERSION ?= 6.4.2
 
 setup-clean:
 	docker-machine rm -f registry splunk1 splunk2 splunk3
