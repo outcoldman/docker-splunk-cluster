@@ -38,8 +38,8 @@ setup:
 	(eval $$(docker-machine env splunk1) && docker swarm init --advertise-addr $$(docker-machine ip splunk1))
 	(eval $$(docker-machine env splunk2) && docker swarm join --listen-addr $$(docker-machine ip splunk2) $$(docker-machine ip splunk1):2377 --token $$(eval $$(docker-machine env splunk1) && docker swarm  join-token -q worker ) )
 	(eval $$(docker-machine env splunk3) && docker swarm join --listen-addr $$(docker-machine ip splunk3) $$(docker-machine ip splunk1):2377 --token $$(eval $$(docker-machine env splunk1) && docker swarm  join-token -q worker ) )
+	(eval $$(docker-machine env splunk1) && docker network create --driver=overlay splunk)
 	eval $$(docker-machine env splunk1)
-	docker network create --driver=overlay splunk
 
 build:
 	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
