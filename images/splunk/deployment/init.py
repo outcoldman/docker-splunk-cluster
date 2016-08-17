@@ -132,6 +132,14 @@ def main():
             url, role = dependency
             init_helpers.wait_dependency(url, role)
 
+        server_name = os.environ.get("INIT_SERVER_GENERAL_SERVERNAME", socket.getfqdn())
+        if server_name:
+            init_helpers.set_server_name(server_name)
+
+        default_host = os.environ.get("INIT_INPUTS_DEFAULT_HOST", socket.getfqdn())
+        if default_host:
+            init_helpers.set_default_host(default_host)
+
         init_helpers.splunk_start()
 
         init_consul.wait_consul()

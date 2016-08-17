@@ -164,9 +164,7 @@ def wait_local():
 def set_web_prefix(prefix):
     web_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "web.conf")
     conf = splunk.clilib.cli_common.readConfFile(web_conf) if os.path.exists(web_conf) else {}
-    conf["settings"] = {
-        "root_endpoint": prefix
-    }
+    conf.setdefault("settings", {})["root_endpoint"] = prefix
     splunk.clilib.cli_common.writeConfFile(web_conf, conf)
 
 def set_login_content(prefix):
@@ -176,3 +174,15 @@ def set_login_content(prefix):
         "login_content": prefix
     }
     splunk.clilib.cli_common.writeConfFile(web_conf, conf)
+
+def set_server_name(server_name):
+    system_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "system.conf")
+    conf = splunk.clilib.cli_common.readConfFile(system_conf) if os.path.exists(system_conf) else {}
+    conf.setdefault("general", {})["serverName"] = server_name
+    splunk.clilib.cli_common.writeConfFile(system_conf, conf)
+
+def set_default_host(default_host):
+    inputs_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "inputs.conf")
+    conf = splunk.clilib.cli_common.readConfFile(inputs_conf) if os.path.exists(inputs_conf) else {}
+    conf.setdefault("default", {})["host"] = default_host
+    splunk.clilib.cli_common.writeConfFile(inputs_conf, conf)
