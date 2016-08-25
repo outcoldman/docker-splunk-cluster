@@ -1,4 +1,5 @@
 SPLUNK_VERSION ?= 6.4.3
+DOCKER_REGISTRY ?=
 
 setup-clean:
 	docker-machine rm -f registry splunk1 splunk2 splunk3
@@ -47,9 +48,10 @@ setup:
 	(eval $$(docker-machine env splunk1) && docker node update --label-add index=1 splunk1 && docker node update --label-add index=2 splunk2 && docker node update --label-add index=3 splunk3)
 
 build:
-	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+	cd ./../../images/splunk && docker build -t $(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
 	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
+	echo 'Use `DOCKER_REGISTRY=$$(docker-machine ip registry)/` to setup Splunk Cluster with custom images'
 
 deploy-consul:
 	docker service create \
@@ -73,7 +75,7 @@ deploy-consul:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
 	seq 2 3 | xargs -R 10 -I @ docker service create \
 		--constraint "node.labels.index == @" \
 		--mode replicated \
@@ -94,7 +96,7 @@ deploy-consul:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
 
 deploy-data-collector-internal:
 	docker service create \
@@ -122,7 +124,7 @@ deploy-data-collector-internal:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-lb:
 	docker service create \
@@ -150,7 +152,7 @@ deploy-lb:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
 
 deploy-license-master:
 	ls *.lic 1> /dev/null 2>&1;
@@ -178,7 +180,7 @@ deploy-license-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 	while [[ "$$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master)" == "" ]]; do sleep 1; done
 	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master):/opt/splunk-deployment/licenses/
 
@@ -211,7 +213,7 @@ deploy-cluster-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-shc-deployer:
 	docker service create \
@@ -234,7 +236,7 @@ deploy-shc-deployer:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-shc-member:
 	for number in $(shell seq 3); do \
@@ -270,7 +272,7 @@ deploy-shc-member:
 			--env CONSUL_DC=dc \
 			--env CONSUL_DOMAIN=splunk \
 			--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-			$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION); \
+			$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION); \
 	done
 
 deploy-cluster-slave:
@@ -302,7 +304,7 @@ deploy-cluster-slave:
 			--env CONSUL_DC=dc \
 			--env CONSUL_DOMAIN=splunk \
 			--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-			$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION); \
+			$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION); \
 	done
 
 deploy-dmc:
@@ -332,7 +334,7 @@ deploy-dmc:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-deployment-server:
 	docker service create \
@@ -361,7 +363,7 @@ deploy-deployment-server:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-data-collector-hec:
 	docker service create \
@@ -386,7 +388,7 @@ deploy-data-collector-hec:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
 
 deploy: deploy-consul deploy-license-master deploy-cluster-master deploy-shc-deployer deploy-shc-member deploy-cluster-slave deploy-dmc deploy-data-collector-hec deploy-data-collector-internal deploy-lb deploy-deployment-server
 
@@ -401,28 +403,28 @@ clean:
 
 upgrade:
 	@echo "Updating first consul"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul-first
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul-first
 	@sleep 10
 	@echo "Updating consul cluster"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul
 	@sleep 20
 	@echo "Updating data-collector-internal"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-internal
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-internal
 	@echo "Updating lb"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb lb
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb lb
 	@echo "Updating license-master"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) license-master
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) license-master
 	@echo "Updating cluster-master"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-master
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-master
 	@echo "Updating shc-deployer"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-deployer
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-deployer
 	@echo "Updating dmc"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) dmc
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) dmc
 	@echo "Updating deployment-server"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) deployment-server
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) deployment-server
 	@echo "Updating data-collector-hec"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-hec
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-hec
 	@echo "Updating shc-member"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-member
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-member
 	@echo "Updating cluster-slave"
-	docker service update --image $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-slave
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-slave
