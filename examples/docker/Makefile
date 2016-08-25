@@ -1,6 +1,6 @@
 # With license master
 
-SPLUNK_VERSION=6.4.2
+SPLUNK_VERSION=6.4.3
 
 clean-lm:
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml kill

@@ -1,4 +1,4 @@
-FROM outcoldman/splunk:6.4.2
+FROM outcoldman/splunk:6.4.3
 
 MAINTAINER Denis Gladkikh <docker-splunk-cluster@denis.gladkikh.email>
 

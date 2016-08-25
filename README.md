@@ -51,10 +51,10 @@ Below you can find examples how to setup Cluster on Docker, Swarm Mode (1.12-rc4
 
 ### Version
 
-Based on `outcoldman/splunk:6.4.2`.
+Based on `outcoldman/splunk:6.4.3`.
 
-* Version: `6.4.2`
-* Build: `00f5bb3fa822`
+* Version: `6.4.3`
+* Build: `b03109c2bad4`
 
 ## How it works
 
