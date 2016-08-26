@@ -24,9 +24,9 @@ clean:
 	docker-compose -f docker-compose.yml rm -v -f
 
 build:
-	cd ./../../images/splunk && docker build -t outcoldman/splunk-cluster:$(SPLUNK_VERSION) -t outcoldman/splunk-cluster:latest .
-	cd ./../../images/lb && docker build -t outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb -t outcoldman/splunk-cluster:latest-lb .
-	cd ./../../images/consul && docker build -t outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul -t outcoldman/splunk-cluster:latest-consul .
+	cd ./../../images/splunk && docker build -t outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) -t outcoldman/docker-splunk-cluster:latest .
+	cd ./../../images/lb && docker build -t outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb -t outcoldman/docker-splunk-cluster:latest-lb .
+	cd ./../../images/consul && docker build -t outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul -t outcoldman/docker-splunk-cluster:latest-consul .
 
 
 deploy:

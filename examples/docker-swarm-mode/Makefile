@@ -1,5 +1,7 @@
 SPLUNK_VERSION ?= 6.4.3
 DOCKER_REGISTRY ?=
+# If you don't want (cannot) delete old volumes, just use SALT to use new one
+SALT ?=
 
 setup-clean:
 	docker-machine rm -f registry splunk1 splunk2 splunk3
@@ -48,9 +50,9 @@ setup:
 	(eval $$(docker-machine env splunk1) && docker node update --label-add index=1 splunk1 && docker node update --label-add index=2 splunk2 && docker node update --label-add index=3 splunk3)
 
 build:
-	cd ./../../images/splunk && docker build -t $(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)
-	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
-	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul . && docker push $$(docker-machine ip registry)/outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
+	cd ./../../images/splunk && docker build -t $(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
+	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb
+	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
 	echo 'Use `DOCKER_REGISTRY=$$(docker-machine ip registry)/` to setup Splunk Cluster with custom images'
 
 deploy-consul:
@@ -64,7 +66,7 @@ deploy-consul:
 		--container-label splunk.cluster=consul \
 		--label splunk.cluster=consul \
 		--network splunk \
-		--mount "type=volume,source=consul,destination=/var/consul" \
+		--mount "type=volume,source=consul$(SALT),destination=/var/consul" \
 		--env CONSUL_DATA_DIR="/var/consul/data" \
 		--env CONSUL_DC="dc" \
 		--env CONSUL_DOMAIN="splunk" \
@@ -75,7 +77,7 @@ deploy-consul:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
 	seq 2 3 | xargs -R 10 -I @ docker service create \
 		--constraint "node.labels.index == @" \
 		--mode replicated \
@@ -85,7 +87,7 @@ deploy-consul:
 		--mode replicated \
 		--label splunk.cluster=consul \
 		--network splunk \
-		--mount "type=volume,source=consul-@,destination=/var/consul" \
+		--mount "type=volume,source=consul-@$(SALT),destination=/var/consul" \
 		--env CONSUL_DATA_DIR="/var/consul/data" \
 		--env CONSUL_DC="dc" \
 		--env CONSUL_DOMAIN="splunk" \
@@ -96,7 +98,7 @@ deploy-consul:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
 
 deploy-data-collector-internal:
 	docker service create \
@@ -108,8 +110,8 @@ deploy-data-collector-internal:
 		--container-label splunk.cluster=data-collector-internal \
 		--label splunk.cluster=data-collector-internal \
 		--network splunk \
-		--mount "type=volume,source=data-collector-internal-etc,destination=/opt/splunk/etc" \
-		--mount "type=volume,source=data-collector-internal-var,destination=/opt/splunk/var" \
+		--mount "type=volume,source=data-collector-internal-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=data-collector-internal-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=data_collector,deployment_client \
 		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
@@ -124,7 +126,7 @@ deploy-data-collector-internal:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-lb:
 	docker service create \
@@ -152,12 +154,12 @@ deploy-lb:
 		--env SYSLOG_SERVER=data-collector-internal \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb
 
 deploy-license-master:
 	ls *.lic 1> /dev/null 2>&1;
 	docker service create \
-		--constraint "node.labels.index == 1" \
+		--constraint "node.id == $$(docker node ls | grep '*' | awk '{print($$1)}')" \
 		--mode replicated \
 		--replicas 1 \
 		--reserve-memory 256m \
@@ -165,8 +167,8 @@ deploy-license-master:
 		--container-label splunk.cluster=license-master \
 		--label splunk.cluster=license-master \
 		--network splunk \
-		--mount "type=volume,source=license-master-etc,destination=/opt/splunk/etc" \
-		--mount "type=volume,source=license-master-var,destination=/opt/splunk/var" \
+		--mount "type=volume,source=license-master-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=license-master-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=license_master \
 		--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
@@ -180,7 +182,7 @@ deploy-license-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 	while [[ "$$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master)" == "" ]]; do sleep 1; done
 	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master):/opt/splunk-deployment/licenses/
 
@@ -194,8 +196,8 @@ deploy-cluster-master:
 		--container-label splunk.cluster=cluster-master \
 		--label splunk.cluster=cluster-master \
 		--network splunk \
-		--mount "type=volume,source=cluster-master-etc,destination=/opt/splunk/etc" \
-		--mount "type=volume,source=cluster-master-var,destination=/opt/splunk/var" \
+		--mount "type=volume,source=cluster-master-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=cluster-master-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=cluster_master,license_slave \
 		--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
@@ -213,7 +215,7 @@ deploy-cluster-master:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-shc-deployer:
 	docker service create \
@@ -225,8 +227,8 @@ deploy-shc-deployer:
 		--container-label splunk.cluster=shc-deployer \
 		--label splunk.cluster=shc-deployer \
 		--network splunk \
-		--mount "type=volume,source=shc-deployer-etc,destination=/opt/splunk/etc" \
-		--mount "type=volume,source=shc-deployer-var,destination=/opt/splunk/var" \
+		--mount "type=volume,source=shc-deployer-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=shc-deployer-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=shc_deployer \
 		--env INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme \
@@ -236,7 +238,7 @@ deploy-shc-deployer:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-shc-member:
 	for number in $(shell seq 3); do \
@@ -250,8 +252,8 @@ deploy-shc-member:
 			--container-label splunk.cluster=shc-member \
 			--label splunk.cluster=shc-member \
 			--network splunk \
-			--mount "type=volume,source=shc-member-0$${number}-etc,destination=/opt/splunk/etc" \
-			--mount "type=volume,source=shc-member-0$${number}-var,destination=/opt/splunk/var" \
+			--mount "type=volume,source=shc-member-0$${number}-etc$(SALT),destination=/opt/splunk/etc" \
+			--mount "type=volume,source=shc-member-0$${number}-var$(SALT),destination=/opt/splunk/var" \
 			--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 			--env SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead \
 			--env INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme \
@@ -272,7 +274,7 @@ deploy-shc-member:
 			--env CONSUL_DC=dc \
 			--env CONSUL_DOMAIN=splunk \
 			--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-			$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION); \
+			$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION); \
 	done
 
 deploy-cluster-slave:
@@ -287,8 +289,8 @@ deploy-cluster-slave:
 			--container-label splunk.cluster=cluster-slave \
 			--label splunk.cluster=cluster-slave \
 			--network splunk \
-			--mount "type=volume,source=cluster-slave-0$${number}-etc,destination=/opt/splunk/etc" \
-			--mount "type=volume,source=cluster-slave-0$${number}-var,destination=/opt/splunk/var" \
+			--mount "type=volume,source=cluster-slave-0$${number}-etc$(SALT),destination=/opt/splunk/etc" \
+			--mount "type=volume,source=cluster-slave-0$${number}-var$(SALT),destination=/opt/splunk/var" \
 			--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 			--env SPLUNK_ROLES=cluster_slave,license_slave \
 			--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
@@ -304,7 +306,7 @@ deploy-cluster-slave:
 			--env CONSUL_DC=dc \
 			--env CONSUL_DOMAIN=splunk \
 			--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-			$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION); \
+			$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION); \
 	done
 
 deploy-dmc:
@@ -317,8 +319,8 @@ deploy-dmc:
 		--container-label splunk.cluster=dmc \
 		--label splunk.cluster=dmc \
 		--network splunk \
-		--mount "type=volume,source=dmc-etc,destination=/opt/splunk/etc" \
-		--mount "type=volume,source=dmc-var,destination=/opt/splunk/var" \
+		--mount "type=volume,source=dmc-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=dmc-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=license_slave,cluster_searchhead,dmc \
 		--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
@@ -334,7 +336,7 @@ deploy-dmc:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-deployment-server:
 	docker service create \
@@ -346,8 +348,8 @@ deploy-deployment-server:
 		--container-label splunk.cluster=deployment-server \
 		--label splunk.cluster=deployment-server \
 		--network splunk \
-		--mount "type=volume,source=deployment-server-etc,destination=/opt/splunk/etc" \
-		--mount "type=volume,source=deployment-server-var,destination=/opt/splunk/var" \
+		--mount "type=volume,source=deployment-server-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=deployment-server-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=deployment_server \
 		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
@@ -363,10 +365,11 @@ deploy-deployment-server:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-data-collector-hec:
 	docker service create \
+		--constraint "node.role == worker" \
 		--mode replicated \
 		--replicas 2 \
 		--reserve-memory 256m \
@@ -388,7 +391,7 @@ deploy-data-collector-hec:
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy: deploy-consul deploy-license-master deploy-cluster-master deploy-shc-deployer deploy-shc-member deploy-cluster-slave deploy-dmc deploy-data-collector-hec deploy-data-collector-internal deploy-lb deploy-deployment-server
 
@@ -397,34 +400,38 @@ clean:
 	-seq 2 3 | xargs -I @ docker service rm consul@
 	-seq 3 | xargs -I @ docker service rm shc-member-0@
 	-seq 4 | xargs -I @ docker service rm cluster-slave-0@
+
+clean-volumes:
 	-(eval $$(docker-machine env splunk1); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
 	-(eval $$(docker-machine env splunk2); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
 	-(eval $$(docker-machine env splunk3); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
 
+clean-all: clean-services clean-volumes
+
 upgrade:
 	@echo "Updating first consul"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul-first
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul consul-first
 	@sleep 10
 	@echo "Updating consul cluster"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-consul consul
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul consul
 	@sleep 20
 	@echo "Updating data-collector-internal"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-internal
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) data-collector-internal
 	@echo "Updating lb"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION)-lb lb
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb lb
 	@echo "Updating license-master"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) license-master
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) license-master
 	@echo "Updating cluster-master"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-master
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) cluster-master
 	@echo "Updating shc-deployer"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-deployer
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) shc-deployer
 	@echo "Updating dmc"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) dmc
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) dmc
 	@echo "Updating deployment-server"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) deployment-server
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) deployment-server
 	@echo "Updating data-collector-hec"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) data-collector-hec
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) data-collector-hec
 	@echo "Updating shc-member"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) shc-member
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) shc-member
 	@echo "Updating cluster-slave"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/splunk-cluster:$(SPLUNK_VERSION) cluster-slave
+	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) cluster-slave

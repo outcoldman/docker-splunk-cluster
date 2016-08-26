@@ -2,7 +2,7 @@ version: '2'
 services:
 
   license-master:
-    image: outcoldman/splunk-cluster:latest
+    image: outcoldman/docker-splunk-cluster:latest
     container_name: license-master
     hostname: license-master
     depends_on:
