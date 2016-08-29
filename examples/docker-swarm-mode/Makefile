@@ -50,7 +50,7 @@ setup:
 	(eval $$(docker-machine env splunk1) && docker node update --label-add index=1 splunk1 && docker node update --label-add index=2 splunk2 && docker node update --label-add index=3 splunk3)
 
 build:
-	cd ./../../images/splunk && docker build -t $(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
+	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb
 	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
 	echo 'Use `DOCKER_REGISTRY=$$(docker-machine ip registry)/` to setup Splunk Cluster with custom images'
@@ -406,7 +406,7 @@ clean-volumes:
 	-(eval $$(docker-machine env splunk2); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
 	-(eval $$(docker-machine env splunk3); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
 
-clean-all: clean-services clean-volumes
+clean-all: clean clean-volumes
 
 upgrade:
 	@echo "Updating first consul"
