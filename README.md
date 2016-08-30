@@ -365,8 +365,6 @@ make clean-lm
 
 #### On docker swarm
 
-> In progress
-> TODO: seems like docker swarm mode in 1.12-rc4 has issue with network discovery. So example does not work.
 > NOTE: Splunk Enterprise License is required
 
 ```
@@ -382,8 +380,7 @@ One instance is a docker registry. Another 3 will be part of Swarm cluster.
 make setup
 ```
 
-Do all steps from echoed from command above (two nodes need to join swarm cluster and create a network).
-
+If you want to use custom build, use next command. 
 Build images. This command will build images and publish to local registry.
 
 ```
@@ -399,7 +396,7 @@ make deploy
 To clean splunk cluster use
 
 ```
-make clean
+make clean-all
 ```
 
 To kill all docker machines use

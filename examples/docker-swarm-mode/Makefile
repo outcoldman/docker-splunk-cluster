@@ -53,7 +53,7 @@ build:
 	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 	cd ./../../images/lb && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb
 	cd ./../../images/consul && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
-	echo 'Use `DOCKER_REGISTRY=$$(docker-machine ip registry)/` to setup Splunk Cluster with custom images'
+	echo 'Use `export DOCKER_REGISTRY=$$(docker-machine ip registry)/` to setup Splunk Cluster with custom images'
 
 deploy-consul:
 	docker service create \
@@ -201,8 +201,8 @@ deploy-cluster-master:
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 		--env SPLUNK_ROLES=cluster_master,license_slave \
 		--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
-		--env INIT_CLUSTERING_REPLICATION_FACTOR=1 \
-		--env INIT_CLUSTERING_SEARCH_FACTOR=1 \
+		--env INIT_CLUSTERING_REPLICATION_FACTOR=3 \
+		--env INIT_CLUSTERING_SEARCH_FACTOR=2 \
 		--env INIT_CLUSTERING_CLUSTER_LABEL=cluster \
 		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
 		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
@@ -278,7 +278,7 @@ deploy-shc-member:
 	done
 
 deploy-cluster-slave:
-	for number in $(shell seq 4); do \
+	for number in $(shell seq 3); do \
 		host_n=$$(echo $${number}%3+1 | bc); \
 		docker service create \
 			--constraint "node.labels.index == $${host_n}" \
@@ -351,7 +351,7 @@ deploy-deployment-server:
 		--mount "type=volume,source=deployment-server-etc$(SALT),destination=/opt/splunk/etc" \
 		--mount "type=volume,source=deployment-server-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=deployment_server \
+		--env SPLUNK_ROLES=deployment_server,cluster_searchhead \
 		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
 		--env INIT_DEPLOYMENT_REQUIRE_AUTHENTICATION=true \
 		--env INIT_DEPLOYMENT_CROSS_SERVER_CHECKSUM=true \
@@ -359,6 +359,7 @@ deploy-deployment-server:
 		--env INIT_ENABLE_HTTP_EVENT_COLLECTOR=true \
 		--env INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518 \
 		--env INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec \
+		--env INIT_KVSTORE_ENABLED=false \
 		--env INIT_SERVER_GENERAL_SERVERNAME=deployment-server \
 		--env INIT_INPUTS_DEFAULT_HOST=deployment-server \
 		--env CONSUL_HOST=consul \
