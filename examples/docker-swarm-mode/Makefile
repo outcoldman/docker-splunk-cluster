@@ -12,7 +12,6 @@ setup:
 		--virtualbox-disk-size=200000 \
 		--virtualbox-memory=512 \
 		--virtualbox-cpu-count=1 \
-		--virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.12.1-rc1/boot2docker.iso \
 		registry
 	eval $$(docker-machine env registry) && docker run \
 		--name registry \
@@ -24,7 +23,6 @@ setup:
 		--virtualbox-disk-size=200000 \
 		--virtualbox-memory=4096 \
 		--virtualbox-cpu-count=2 \
-		--virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.12.1-rc1/boot2docker.iso \
 		--engine-insecure-registry $$(docker-machine ip registry) \
 		splunk1
 	docker-machine create \
@@ -32,7 +30,6 @@ setup:
 		--virtualbox-disk-size=200000 \
 		--virtualbox-memory=3072 \
 		--virtualbox-cpu-count=2 \
-		--virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.12.1-rc1/boot2docker.iso \
 		--engine-insecure-registry $$(docker-machine ip registry) \
 		splunk2
 	docker-machine create \
@@ -40,7 +37,6 @@ setup:
 		--virtualbox-disk-size=200000 \
 		--virtualbox-memory=3072 \
 		--virtualbox-cpu-count=2 \
-		--virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.12.1-rc1/boot2docker.iso \
 		--engine-insecure-registry $$(docker-machine ip registry) \
 		splunk3
 	(eval $$(docker-machine env splunk1) && docker swarm init --advertise-addr $$(docker-machine ip splunk1))
