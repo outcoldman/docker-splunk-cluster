@@ -1,44 +1,12 @@
 version: '2'
 services:
 
-  license-master:
-    image: outcoldman/docker-splunk-cluster:latest
-    container_name: license-master
-    hostname: license-master
-    depends_on:
-      - consul
+  cluster-master:
     environment: 
       - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=license_master
+      - SPLUNK_ROLES=cluster_master,license_master,shc_deployer,dmc,deployment_server
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_WEB_ENABLED=true
       - INIT_WAIT_LICENSE=true
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth0
-    labels:
-      splunk.cluster: "license-master"
-    networks:
-      splunk:
-        aliases:
-          - license-master
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
-  cluster-master:
-    depends_on:
-      - license-master
-    environment: 
-      - SPLUNK_ROLES=cluster_master,license_slave
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
 
   shc-member:
     depends_on:
@@ -46,7 +14,7 @@ services:
     environment: 
       - SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
+      - INIT_LICENSE_MASTER=https://cluster-master:8089
 
   cluster-slave:
     depends_on:
@@ -54,15 +22,4 @@ services:
     environment: 
       - SPLUNK_ROLES=cluster_slave,license_slave
       - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
-
-  dmc:
-    depends_on:
-      - license-master
-    environment: 
-      - SPLUNK_ROLES=license_slave,cluster_searchhead,dmc
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://license-master:8089
-
-networks:
-  splunk:
+      - INIT_LICENSE_MASTER=https://cluster-master:8089

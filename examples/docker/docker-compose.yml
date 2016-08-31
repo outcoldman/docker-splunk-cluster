@@ -8,15 +8,27 @@ services:
     depends_on:
       - consul
     environment: 
-      - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=cluster_master
+      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
+      - SPLUNK_ROLES=cluster_master,shc_deployer,dmc,deployment_server
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
-      - INIT_CLUSTERING_REPLICATION_FACTOR=1
-      - INIT_CLUSTERING_SEARCH_FACTOR=1
+      - INIT_CLUSTERING_REPLICATION_FACTOR=3
+      - INIT_CLUSTERING_SEARCH_FACTOR=2
       - INIT_CLUSTERING_CLUSTER_LABEL=cluster
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_WEB_ENABLED=true
+      - INIT_KVSTORE_ENABLED=false
+      - INIT_SERVER_GENERAL_SERVERNAME=cluster-master
+      - INIT_INPUTS_DEFAULT_HOST=cluster-master
+      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
+      - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
+      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
+      - INIT_DEPLOYMENT_REQUIRE_AUTHENTICATION=true
+      - INIT_DEPLOYMENT_CROSS_SERVER_CHECKSUM=true
+      - INIT_DEPLOYMENT_SERVER_PUBLIC=true
+      - INIT_ENABLE_HTTP_EVENT_COLLECTOR=true
+      - INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518
+      - INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -34,35 +46,6 @@ services:
         max-size: "1m"
         max-file: "5"
 
-  shc-deployer:
-    image: outcoldman/docker-splunk-cluster:latest
-    container_name: shc-deployer
-    hostname: shc-deployer
-    depends_on:
-      - consul
-    environment: 
-      - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=shc_deployer
-      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth0
-    labels:
-      splunk.cluster: "shc-deployer"
-    networks:
-      splunk:
-        aliases:
-          - shc-deployer
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
   shc-member:
     image: outcoldman/docker-splunk-cluster:latest
     depends_on:
@@ -70,7 +53,7 @@ services:
       - cluster-master
       - consul
     environment: 
-      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
       - SPLUNK_ROLES=shc_member,shc_deployer_client,cluster_searchhead
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_SHCLUSTERING_SHCDEPLOYER=https://shc-deployer:8089
@@ -102,7 +85,7 @@ services:
       - cluster-master
       - consul
     environment: 
-      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
       - SPLUNK_ROLES=cluster_slave
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
@@ -114,72 +97,6 @@ services:
       splunk.cluster: "cluster-slave"
     networks:
       - splunk
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
-  dmc:
-    image: outcoldman/docker-splunk-cluster:latest
-    container_name: dmc
-    hostname: dmc
-    depends_on:
-      - cluster-master
-      - consul
-    environment: 
-      - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=cluster_searchhead,dmc
-      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
-      - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_KVSTORE_ENABLED=false
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth0
-    labels:
-      splunk.cluster: "dmc"
-    networks:
-      splunk:
-        aliases:
-          - dmc
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
-  deployment-server:
-    image: outcoldman/docker-splunk-cluster:latest
-    container_name: deployment-server
-    hostname: deployment-server
-    depends_on:
-      - cluster-master
-      - consul
-    environment: 
-      - SPLUNK_START_ARGS=--accept-license
-      - SPLUNK_ROLES=deployment_server
-      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
-      - INIT_DEPLOYMENT_REQUIRE_AUTHENTICATION=true
-      - INIT_DEPLOYMENT_CROSS_SERVER_CHECKSUM=true
-      - INIT_DEPLOYMENT_SERVER_PUBLIC=true
-      - INIT_ENABLE_HTTP_EVENT_COLLECTOR=true
-      - INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518
-      - INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth0
-    labels:
-      splunk.cluster: "deployment-server"
-    networks:
-      splunk:
-        aliases:
-          - deployment-server
     restart: always
     logging:
       driver: "json-file"
@@ -218,7 +135,7 @@ services:
   data-collector-internal:
     image: outcoldman/docker-splunk-cluster:latest
     environment: 
-      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
       - SPLUNK_ROLES=data_collector,deployment_client
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
@@ -246,7 +163,7 @@ services:
   data-collector-hec:
     image: outcoldman/docker-splunk-cluster:latest
     environment: 
-      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
       - SPLUNK_ROLES=data_collector,deployment_client
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089

@@ -29,37 +29,6 @@ listen http-in-cluster-master
     {{range service "CLUSTER_MASTER.splunkweb"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 
-# DMC
-
-listen http-in-dmc
-    log global
-    bind :8020
-    {{range service "DMC.splunkweb"}}
-    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
-
-# License Master
-
-listen http-in-license-master
-    log global
-    bind :8030
-    {{range service "LICENSE_MASTER.splunkweb"}}
-    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
-
-# Deployment Server
-
-listen http-in-deployment-server
-    log global
-    bind :8040
-    {{range service "DEPLOYMENT_SERVER.splunkweb"}}
-    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
-
-listen tcp-in-deployment-server-for-clients
-    log global
-    bind :8089
-    mode tcp
-    {{range service "public.DeploymentServer"}}
-    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
-
 # Consul
 
 listen http-in-consul

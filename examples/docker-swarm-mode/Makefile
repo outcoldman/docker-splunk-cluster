@@ -4,7 +4,8 @@ DOCKER_REGISTRY ?=
 SALT ?=
 
 setup-clean:
-	docker-machine rm -f registry splunk1 splunk2 splunk3
+	seq 0 5 | xargs -I @ docker-machine rm -f splunk@
+	docker-machine rm -f registry
 
 setup:
 	docker-machine create \
@@ -18,32 +19,25 @@ setup:
 		--publish 80:5000/tcp \
 		--restart=always \
 		-d registry:2
-	docker-machine create \
+	seq 0 5 | xargs -P 6 -I @ bash -c "docker-machine create \
 		--driver=virtualbox \
 		--virtualbox-disk-size=200000 \
-		--virtualbox-memory=4096 \
+		--virtualbox-memory=1536 \
 		--virtualbox-cpu-count=2 \
 		--engine-insecure-registry $$(docker-machine ip registry) \
-		splunk1
-	docker-machine create \
-		--driver=virtualbox \
-		--virtualbox-disk-size=200000 \
-		--virtualbox-memory=3072 \
-		--virtualbox-cpu-count=2 \
-		--engine-insecure-registry $$(docker-machine ip registry) \
-		splunk2
-	docker-machine create \
-		--driver=virtualbox \
-		--virtualbox-disk-size=200000 \
-		--virtualbox-memory=3072 \
-		--virtualbox-cpu-count=2 \
-		--engine-insecure-registry $$(docker-machine ip registry) \
-		splunk3
-	(eval $$(docker-machine env splunk1) && docker swarm init --advertise-addr $$(docker-machine ip splunk1))
-	(eval $$(docker-machine env splunk2) && docker swarm join --listen-addr $$(docker-machine ip splunk2) $$(docker-machine ip splunk1):2377 --token $$(eval $$(docker-machine env splunk1) && docker swarm  join-token -q worker ) )
-	(eval $$(docker-machine env splunk3) && docker swarm join --listen-addr $$(docker-machine ip splunk3) $$(docker-machine ip splunk1):2377 --token $$(eval $$(docker-machine env splunk1) && docker swarm  join-token -q worker ) )
-	(eval $$(docker-machine env splunk1) && docker network create --driver=overlay splunk)
-	(eval $$(docker-machine env splunk1) && docker node update --label-add index=1 splunk1 && docker node update --label-add index=2 splunk2 && docker node update --label-add index=3 splunk3)
+		splunk@"
+	(eval $$(docker-machine env splunk0) && docker swarm init --advertise-addr $$(docker-machine ip splunk0))
+	seq 3 | xargs -I @ bash -c 'eval $$(docker-machine env splunk@) && docker swarm join --listen-addr $$(docker-machine ip splunk@) $$(docker-machine ip splunk0):2377 --token $$(eval $$(docker-machine env splunk0) && docker swarm  join-token -q worker )' 
+	(eval $$(docker-machine env splunk0) && docker network create --driver=overlay splunk)
+	seq 3 | xargs -I @ bash -c 'eval $$(docker-machine env splunk0) && docker node update --label-add index=@ splunk@'
+
+setup-add-2:
+	seq 4 5 | xargs -I @ bash -c 'eval $$(docker-machine env splunk@) && docker swarm join --listen-addr $$(docker-machine ip splunk@) $$(docker-machine ip splunk0):2377 --token $$(eval $$(docker-machine env splunk0) && docker swarm  join-token -q worker )' 
+	seq 4 5 | xargs -I @ bash -c 'eval $$(docker-machine env splunk0) && docker node update --label-add index=@ splunk@'
+
+setup-remove-2:
+	-seq 4 5 | xargs -I @ bash -c 'eval $$(docker-machine env splunk@) && docker swarm leave' 
+	-seq 4 5 | xargs -I @ bash -c 'eval $$(docker-machine env splunk0) && docker node rm splunk@'
 
 build:
 	cd ./../../images/splunk && docker build -t $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) . && docker push $$(docker-machine ip registry)/outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
@@ -53,7 +47,7 @@ build:
 
 deploy-consul:
 	docker service create \
-		--constraint "node.labels.index == 1" \
+		--constraint "node.id == $$(docker node ls | grep '*' | awk '{print($$1)}')" \
 		--mode replicated \
 		--replicas 1 \
 		--reserve-memory 64m \
@@ -67,66 +61,17 @@ deploy-consul:
 		--env CONSUL_DC="dc" \
 		--env CONSUL_DOMAIN="splunk" \
 		--env CONSUL_CLIENT="127.0.0.1" \
-		--env CONSUL_BOOTSTRAP_EXPECT="3" \
+		--env CONSUL_BOOTSTRAP_EXPECT="1" \
 		--env CONSUL_JOIN="consul" \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		--env SYSLOG_SERVER=data-collector-internal \
+		--env SYSLOG_SERVER=cluster-slave \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
 		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
-	seq 2 3 | xargs -R 10 -I @ docker service create \
-		--constraint "node.labels.index == @" \
-		--mode replicated \
-		--replicas 1 \
-		--reserve-memory 64m \
-		--name consul@ \
-		--mode replicated \
-		--label splunk.cluster=consul \
-		--network splunk \
-		--mount "type=volume,source=consul-@$(SALT),destination=/var/consul" \
-		--env CONSUL_DATA_DIR="/var/consul/data" \
-		--env CONSUL_DC="dc" \
-		--env CONSUL_DOMAIN="splunk" \
-		--env CONSUL_CLIENT="127.0.0.1" \
-		--env CONSUL_BOOTSTRAP_EXPECT="3" \
-		--env CONSUL_JOIN="consul" \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		--env SYSLOG_SERVER=data-collector-internal \
-		--env SYSLOG_PORT=1514 \
-		--env SYSLOG_PROTO=udp \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul
-
-deploy-data-collector-internal:
-	docker service create \
-		--constraint "node.labels.index == 1" \
-		--mode replicated \
-		--replicas 1 \
-		--reserve-memory 128m \
-		--name data-collector-internal \
-		--container-label splunk.cluster=data-collector-internal \
-		--label splunk.cluster=data-collector-internal \
-		--network splunk \
-		--mount "type=volume,source=data-collector-internal-etc$(SALT),destination=/opt/splunk/etc" \
-		--mount "type=volume,source=data-collector-internal-var$(SALT),destination=/opt/splunk/var" \
-		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=data_collector,deployment_client \
-		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
-		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
-		--env INIT_ADD_UDP_PORT=1514 \
-		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
-		--env INIT_DEPLOYMENT_CLIENT_NAME=data-collector-internal \
-		--env INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=deployment-server:8089 \
-		--env INIT_SERVER_GENERAL_SERVERNAME=data-collector-internal \
-		--env INIT_INPUTS_DEFAULT_HOST=data-collector-internal \
-		--env CONSUL_HOST=consul \
-		--env CONSUL_DC=dc \
-		--env CONSUL_DOMAIN=splunk \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
 
 deploy-lb:
 	docker service create \
-		--constraint "node.labels.index == 1" \
+		--constraint "node.id == $$(docker node ls | grep '*' | awk '{print($$1)}')" \
 		--mode replicated \
 		--replicas 1 \
 		--reserve-memory 256m \
@@ -137,9 +82,6 @@ deploy-lb:
 		--network splunk \
 		--publish 8000:8000 \
 		--publish 8010:8010 \
-		--publish 8020:8020 \
-		--publish 8030:8030 \
-		--publish 8040:8040 \
 		--publish 8500:8500 \
 		--publish 8089:8089 \
 		--publish 8088:8088 \
@@ -147,47 +89,18 @@ deploy-lb:
 		--env CONSUL_HOST="consul" \
 		--env CONSUL_DOMAIN="splunk" \
 		--env CONSUL_ADVERTISE_INTERFACE=eth2 \
-		--env SYSLOG_SERVER=data-collector-internal \
+		--env SYSLOG_SERVER=cluster-slave \
 		--env SYSLOG_PORT=1514 \
 		--env SYSLOG_PROTO=udp \
 		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb
 
-deploy-license-master:
+deploy-cluster-master:
 	ls *.lic 1> /dev/null 2>&1;
 	docker service create \
 		--constraint "node.id == $$(docker node ls | grep '*' | awk '{print($$1)}')" \
 		--mode replicated \
 		--replicas 1 \
-		--reserve-memory 256m \
-		--name license-master \
-		--container-label splunk.cluster=license-master \
-		--label splunk.cluster=license-master \
-		--network splunk \
-		--mount "type=volume,source=license-master-etc$(SALT),destination=/opt/splunk/etc" \
-		--mount "type=volume,source=license-master-var$(SALT),destination=/opt/splunk/var" \
-		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=license_master \
-		--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
-		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
-		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
-		--env INIT_WEB_ENABLED=true \
-		--env INIT_WAIT_LICENSE=true \
-		--env INIT_SERVER_GENERAL_SERVERNAME=license-master \
-		--env INIT_INPUTS_DEFAULT_HOST=license-master \
-		--env CONSUL_HOST=consul \
-		--env CONSUL_DC=dc \
-		--env CONSUL_DOMAIN=splunk \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
-	while [[ "$$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master)" == "" ]]; do sleep 1; done
-	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=com.docker.swarm.service.name=license-master):/opt/splunk-deployment/licenses/
-
-deploy-cluster-master:
-	docker service create \
-		--constraint "node.labels.index == 1" \
-		--mode replicated \
-		--replicas 1 \
-		--reserve-memory 256m \
+		--reserve-memory 512m \
 		--name cluster-master \
 		--container-label splunk.cluster=cluster-master \
 		--label splunk.cluster=cluster-master \
@@ -195,7 +108,7 @@ deploy-cluster-master:
 		--mount "type=volume,source=cluster-master-etc$(SALT),destination=/opt/splunk/etc" \
 		--mount "type=volume,source=cluster-master-var$(SALT),destination=/opt/splunk/var" \
 		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=cluster_master,license_slave \
+		--env SPLUNK_ROLES=cluster_master,license_master,shc_deployer,dmc,deployment_server \
 		--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
 		--env INIT_CLUSTERING_REPLICATION_FACTOR=3 \
 		--env INIT_CLUSTERING_SEARCH_FACTOR=2 \
@@ -203,44 +116,30 @@ deploy-cluster-master:
 		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
 		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
 		--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
-		--env INIT_LICENSE_MASTER=https://license-master:8089 \
 		--env INIT_WEB_ENABLED=true \
-		--env INIT_SERVER_GENERAL_SERVERNAME=cluster-master \
-		--env INIT_INPUTS_DEFAULT_HOST=cluster-master \
-		--env CONSUL_HOST=consul \
-		--env CONSUL_DC=dc \
-		--env CONSUL_DOMAIN=splunk \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
-
-deploy-shc-deployer:
-	docker service create \
-		--constraint "node.labels.index == 1" \
-		--mode replicated \
-		--replicas 1 \
-		--reserve-memory 256m \
-		--name shc-deployer \
-		--container-label splunk.cluster=shc-deployer \
-		--label splunk.cluster=shc-deployer \
-		--network splunk \
-		--mount "type=volume,source=shc-deployer-etc$(SALT),destination=/opt/splunk/etc" \
-		--mount "type=volume,source=shc-deployer-var$(SALT),destination=/opt/splunk/var" \
-		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=shc_deployer \
+		--env INIT_KVSTORE_ENABLED=false \
+		--env INIT_WAIT_LICENSE=true \
 		--env INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme \
-		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
-		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
+		--env INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster \
+		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
+		--env INIT_DEPLOYMENT_REQUIRE_AUTHENTICATION=true \
+		--env INIT_DEPLOYMENT_CROSS_SERVER_CHECKSUM=true \
+		--env INIT_DEPLOYMENT_SERVER_PUBLIC=true \
+		--env INIT_ENABLE_HTTP_EVENT_COLLECTOR=true \
+		--env INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518 \
+		--env INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec \
 		--env CONSUL_HOST=consul \
 		--env CONSUL_DC=dc \
 		--env CONSUL_DOMAIN=splunk \
 		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
 		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
+	while [[ "$$(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master)" == "" ]]; do sleep 1; done
+	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master):/opt/splunk-deployment/licenses/
 
 deploy-shc-member:
 	for number in $(shell seq 3); do \
-		host_n=$$(echo $${number}%3+1 | bc); \
 		docker service create \
-			--constraint "node.labels.index == $${host_n}" \
+			--constraint "node.labels.index == $${number}" \
 			--name shc-member-0$${number} \
 			--mode replicated \
 			--replicas 1 \
@@ -253,19 +152,17 @@ deploy-shc-member:
 			--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
 			--env SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead \
 			--env INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme \
-			--env INIT_SHCLUSTERING_SHCDEPLOYER=https://shc-deployer:8089 \
+			--env INIT_SHCLUSTERING_SHCDEPLOYER=https://cluster-master:8089 \
 			--env INIT_SHCLUSTERING_REPLICATION_FACTOR=3 \
 			--env INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster \
 			--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
-			--env INIT_LICENSE_MASTER=https://license-master:8089 \
+			--env INIT_LICENSE_MASTER=https://cluster-master:8089 \
 			--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
 			--env INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089 \
 			--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
 			--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
 			--env INIT_SHCLUSTER_AUTOBOOTSTRAP=3 \
 			--env INIT_SHCLUSTERING_HOSTNAME=shc-member-0$${number} \
-			--env INIT_SERVER_GENERAL_SERVERNAME=shc-member-0$${number} \
-			--env INIT_INPUTS_DEFAULT_HOST=shc-member-0$${number} \
 			--env CONSUL_HOST=consul \
 			--env CONSUL_DC=dc \
 			--env CONSUL_DOMAIN=splunk \
@@ -274,30 +171,65 @@ deploy-shc-member:
 	done
 
 deploy-cluster-slave:
-	for number in $(shell seq 3); do \
-		host_n=$$(echo $${number}%3+1 | bc); \
+	docker service create \
+		--constraint "node.role != manager" \
+		--name cluster-slave \
+		--mode global \
+		--reserve-memory 512m \
+		--container-label splunk.cluster=cluster-slave \
+		--label splunk.cluster=cluster-slave \
+		--network splunk \
+		--mount "type=volume,source=cluster-slave-etc$(SALT),destination=/opt/splunk/etc" \
+		--mount "type=volume,source=cluster-slave-var$(SALT),destination=/opt/splunk/var" \
+		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
+		--env SPLUNK_ROLES=cluster_slave,license_slave,deployment_client,data_collector \
+		--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
+		--env INIT_LICENSE_MASTER=https://cluster-master:8089 \
+		--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
+		--env INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089 \
+		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
+		--env INIT_DEPLOYMENT_CLIENT_NAME=data-collector-hec \
+		--env INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=cluster-master:8089 \
+		--env INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR=true \
+		--env INIT_ADD_UDP_PORT=1514 \
+		--env CONSUL_HOST=consul \
+		--env CONSUL_DC=dc \
+		--env CONSUL_DOMAIN=splunk \
+		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
+		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION); \
+
+deploy: deploy-consul deploy-cluster-master deploy-shc-member deploy-cluster-slave deploy-lb
+
+demo-add-peers:
+	seq 3 | xargs -I @ docker exec $$(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master) entrypoint.sh splunk add search-server shc-member-0@:8089 -remoteUsername admin -remotePassword changed -auth admin:changeme
+
+demo-add-2-shc:
+	for number in $(shell seq 4 5); do \
 		docker service create \
-			--constraint "node.labels.index == $${host_n}" \
-			--name cluster-slave-0$${number} \
+			--constraint "node.labels.index == $${number}" \
+			--name shc-member-0$${number} \
 			--mode replicated \
 			--replicas 1 \
 			--reserve-memory 512m \
-			--container-label splunk.cluster=cluster-slave \
-			--label splunk.cluster=cluster-slave \
+			--container-label splunk.cluster=shc-member \
+			--label splunk.cluster=shc-member \
 			--network splunk \
-			--mount "type=volume,source=cluster-slave-0$${number}-etc$(SALT),destination=/opt/splunk/etc" \
-			--mount "type=volume,source=cluster-slave-0$${number}-var$(SALT),destination=/opt/splunk/var" \
+			--mount "type=volume,source=shc-member-0$${number}-etc$(SALT),destination=/opt/splunk/etc" \
+			--mount "type=volume,source=shc-member-0$${number}-var$(SALT),destination=/opt/splunk/var" \
 			--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-			--env SPLUNK_ROLES=cluster_slave,license_slave \
+			--env SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead \
+			--env INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme \
+			--env INIT_SHCLUSTERING_SHCDEPLOYER=https://cluster-master:8089 \
+			--env INIT_SHCLUSTERING_REPLICATION_FACTOR=3 \
+			--env INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster \
 			--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
-			--env INIT_LICENSE_MASTER=https://license-master:8089 \
+			--env INIT_LICENSE_MASTER=https://cluster-master:8089 \
 			--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
 			--env INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089 \
-			--env INIT_CLUSTERING_REGISTER_FORWARDER_ADDRESS=cluster-slave-0$${number} \
-			--env INIT_CLUSTERING_REGISTER_SEARCH_ADDRESS=cluster-slave-0$${number} \
-			--env INIT_CLUSTERING_REGISTER_REPLICATION_ADDRESS=cluster-slave-0$${number} \
-			--env INIT_SERVER_GENERAL_SERVERNAME=cluster-slave-0$${number} \
-			--env INIT_INPUTS_DEFAULT_HOST=cluster-slave-0$${number} \
+			--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
+			--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
+			--env INIT_SHCLUSTER_AUTOBOOTSTRAP=3 \
+			--env INIT_SHCLUSTERING_HOSTNAME=shc-member-0$${number} \
 			--env CONSUL_HOST=consul \
 			--env CONSUL_DC=dc \
 			--env CONSUL_DOMAIN=splunk \
@@ -305,103 +237,18 @@ deploy-cluster-slave:
 			$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION); \
 	done
 
-deploy-dmc:
-	docker service create \
-		--constraint "node.labels.index == 1" \
-		--mode replicated \
-		--replicas 1 \
-		--reserve-memory 512m \
-		--name dmc \
-		--container-label splunk.cluster=dmc \
-		--label splunk.cluster=dmc \
-		--network splunk \
-		--mount "type=volume,source=dmc-etc$(SALT),destination=/opt/splunk/etc" \
-		--mount "type=volume,source=dmc-var$(SALT),destination=/opt/splunk/var" \
-		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=license_slave,cluster_searchhead,dmc \
-		--env INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme \
-		--env INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089 \
-		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
-		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
-		--env INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme \
-		--env INIT_LICENSE_MASTER=https://license-master:8089 \
-		--env INIT_KVSTORE_ENABLED=false \
-		--env INIT_SERVER_GENERAL_SERVERNAME=dmc \
-		--env INIT_INPUTS_DEFAULT_HOST=dmc \
-		--env CONSUL_HOST=consul \
-		--env CONSUL_DC=dc \
-		--env CONSUL_DOMAIN=splunk \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
-
-deploy-deployment-server:
-	docker service create \
-		--constraint "node.labels.index == 1" \
-		--mode replicated \
-		--replicas 1 \
-		--reserve-memory 256m \
-		--name deployment-server \
-		--container-label splunk.cluster=deployment-server \
-		--label splunk.cluster=deployment-server \
-		--network splunk \
-		--mount "type=volume,source=deployment-server-etc$(SALT),destination=/opt/splunk/etc" \
-		--mount "type=volume,source=deployment-server-var$(SALT),destination=/opt/splunk/var" \
-		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=deployment_server,cluster_searchhead \
-		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
-		--env INIT_DEPLOYMENT_REQUIRE_AUTHENTICATION=true \
-		--env INIT_DEPLOYMENT_CROSS_SERVER_CHECKSUM=true \
-		--env INIT_DEPLOYMENT_SERVER_PUBLIC=true \
-		--env INIT_ENABLE_HTTP_EVENT_COLLECTOR=true \
-		--env INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518 \
-		--env INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec \
-		--env INIT_KVSTORE_ENABLED=false \
-		--env INIT_SERVER_GENERAL_SERVERNAME=deployment-server \
-		--env INIT_INPUTS_DEFAULT_HOST=deployment-server \
-		--env CONSUL_HOST=consul \
-		--env CONSUL_DC=dc \
-		--env CONSUL_DOMAIN=splunk \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
-
-deploy-data-collector-hec:
-	docker service create \
-		--constraint "node.role == worker" \
-		--mode replicated \
-		--replicas 2 \
-		--reserve-memory 256m \
-		--name data-collector-hec \
-		--container-label splunk.cluster=data-collector-hec \
-		--label splunk.cluster=data-collector-hec \
-		--network splunk \
-		--update-parallelism=1 \
-		--update-delay 30s \
-		--env SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt" \
-		--env SPLUNK_ROLES=data_collector,deployment_client \
-		--env INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme \
-		--env INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089 \
-		--env INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme \
-		--env INIT_DEPLOYMENT_CLIENT_NAME=data-collector-hec \
-		--env INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=deployment-server:8089 \
-		--env INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR=true \
-		--env CONSUL_HOST=consul \
-		--env CONSUL_DC=dc \
-		--env CONSUL_DOMAIN=splunk \
-		--env CONSUL_ADVERTISE_INTERFACE=eth0 \
-		$(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)
-
-deploy: deploy-consul deploy-license-master deploy-cluster-master deploy-shc-deployer deploy-shc-member deploy-cluster-slave deploy-dmc deploy-data-collector-hec deploy-data-collector-internal deploy-lb deploy-deployment-server
+demo-add-more-peers:
+	seq 4 5 | xargs -I @ docker exec $$(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master) entrypoint.sh splunk add search-server shc-member-0@:8089 -remoteUsername admin -remotePassword changed -auth admin:changeme
 
 clean:
-	-docker service rm consul license-master cluster-master shc-deployer dmc data-collector-hec data-collector-internal lb deployment-server
-	-seq 2 3 | xargs -I @ docker service rm consul@
+	-docker service rm consul cluster-master lb cluster-slave
+	-seq 3 | xargs -I @ docker service rm cluster-slave-0@
+	-seq 4 5 | xargs -I @ docker service rm cluster-slave-0@
 	-seq 3 | xargs -I @ docker service rm shc-member-0@
-	-seq 4 | xargs -I @ docker service rm cluster-slave-0@
+	-seq 4 5 | xargs -I @ docker service rm shc-member-0@
 
 clean-volumes:
-	-(eval $$(docker-machine env splunk1); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
-	-(eval $$(docker-machine env splunk2); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
-	-(eval $$(docker-machine env splunk3); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q))
+	-seq 0 5 | xargs -I @ bash -c 'eval $$(docker-machine env splunk@); docker kill $$(docker ps -q); docker rm -v $$(docker ps -aq); docker volume rm $$(docker volume ls -q)'
 
 clean-all: clean clean-volumes
 
@@ -412,16 +259,10 @@ upgrade:
 	@echo "Updating consul cluster"
 	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-consul consul
 	@sleep 20
-	@echo "Updating data-collector-internal"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) data-collector-internal
 	@echo "Updating lb"
 	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION)-lb lb
-	@echo "Updating license-master"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) license-master
 	@echo "Updating cluster-master"
 	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) cluster-master
-	@echo "Updating shc-deployer"
-	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) shc-deployer
 	@echo "Updating dmc"
 	docker service update --image $(DOCKER_REGISTRY)outcoldman/docker-splunk-cluster:$(SPLUNK_VERSION) dmc
 	@echo "Updating deployment-server"
