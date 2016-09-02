@@ -16,11 +16,6 @@ services:
       - INIT_CLUSTERING_CLUSTER_LABEL=cluster
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_WEB_ENABLED=true
-      - INIT_KVSTORE_ENABLED=false
-      - INIT_DMC_ENABLED=true
-      - INIT_SERVER_GENERAL_SERVERNAME=cluster-master
-      - INIT_INPUTS_DEFAULT_HOST=cluster-master
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
       - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
@@ -30,6 +25,11 @@ services:
       - INIT_ENABLE_HTTP_EVENT_COLLECTOR=true
       - INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518
       - INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec
+      - INIT_CONF__web__settings__login_content=Cluster Master
+      - INIT_CONF__server__general__serverName=cluster-master
+      - INIT_CONF__inputs__default__host=cluster-master
+      - INIT_CONF__server__kvstore__disabled=true
+      - INIT_FORWARD_INDEX=true
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -55,8 +55,8 @@ services:
     environment: 
       - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
       - SPLUNK_ROLES=shc_member,shc_deployer_client,cluster_searchhead
-      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_SHCLUSTERING_SHCDEPLOYER=https://cluster-master:8089
+      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_SHCLUSTERING_REPLICATION_FACTOR=3
       - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
@@ -64,6 +64,10 @@ services:
       - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_SHCLUSTER_AUTOBOOTSTRAP=3
+      - INIT_CONF__server__shclustering__election_timeout_ms=5000
+      - INIT_CONF__web__settings__login_content=SHC Member
+      - INIT_CONF__splunk_management_console__app__install__state=disabled
+      - INIT_FORWARD_INDEX=true
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -94,6 +98,9 @@ services:
       - INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=cluster-master:8089
       - INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR=true
       - INIT_ADD_UDP_PORT=1514
+      - INIT_CONF__splunk_management_console__app__install__state=disabled
+      - INIT_CONF__server__kvstore__disabled=true
+      - INIT_CONF__web__settings__startwebserver=false
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk

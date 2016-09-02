@@ -3,17 +3,6 @@ import os
 import init_helpers
 
 
-def configurations():
-    return {
-        "components": {
-            "kvstore": False,
-            "web": False,
-            "indexing": False,
-            "dmc": False
-        }
-    }
-
-
 def substitution():
     return {
         "@CLUSTERING_PASS_4_SYMM_KEY@": os.environ.get("INIT_CLUSTERING_PASS_4_SYMM_KEY", "clustering-changeme"),

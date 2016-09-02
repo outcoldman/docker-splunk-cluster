@@ -5,12 +5,6 @@ import init_helpers
 
 def configurations():
     return {
-        "components": {
-            "kvstore": False,
-            "web": False,
-            "indexing": False,
-            "dmc": False
-        },
         "dependencies": [
             (os.environ.get("INIT_LICENSE_MASTER", "https://license-master:8089"), "license_master")
         ]

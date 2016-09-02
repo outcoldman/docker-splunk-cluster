@@ -7,17 +7,6 @@ import splunk.util
 import splunk.clilib.cli_common
 
 
-def configurations():
-    return {
-        "components": {
-            "kvstore": False,
-            "web": False,
-            "indexing": False,
-            "dmc": False
-        }
-    }
-
-
 def before_start():
     udp_port = os.environ.get("INIT_ADD_UDP_PORT")
     if udp_port:

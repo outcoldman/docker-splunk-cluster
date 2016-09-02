@@ -34,37 +34,25 @@ modules = {
 }
 
 
-components = [
-    "dmc",
-    "indexing",
-    "kvstore",
-    "web"
-]
-
-
 def main():
     """
     Initialize node
     """
     roles = [role.upper() for role in os.environ.get("SPLUNK_ROLES", "").split(",")]
     dependencies = []
-    splunk_components = dict((component, False) for component in components)
     for role in roles:
         module = modules.get(role.upper())
         configurations = module.configurations() if hasattr(module, "configurations") else {}
-        module_components = configurations.get("components", {})
-        for component in components:
-            splunk_components[component] |= module_components.get(component, False)
         dependencies.extend(configurations.get("dependencies", []))
     if sys.argv[1] == "before_start":
-        before_start(roles, dependencies, splunk_components)
+        before_start(roles, dependencies)
     elif sys.argv[1] == "after_start":
-        after_start(roles, dependencies, splunk_components)
+        after_start(roles, dependencies)
     else:
         exit(1) 
 
 
-def before_start(roles, dependencies, splunk_components):
+def before_start(roles, dependencies):
     print "Initializing " + socket.getfqdn() + " as '" + ", ".join(roles) + "'..."
 
     for role in roles:
@@ -82,32 +70,9 @@ def before_start(roles, dependencies, splunk_components):
         if hasattr(module, "before_start"):
             module.before_start()
 
-    for component in components:
-        envvar = "INIT_%s_ENABLED" % component.upper()
-        if envvar in os.environ:
-            splunk_components[component] = splunk.util.normalizeBoolean(os.environ.get(envvar))
-
-    if not splunk_components["kvstore"]:
+    if splunk.util.normalizeBoolean(os.environ.get("INIT_FORWARD_INDEX", False)):
         init_helpers.copy_etc_tree(
-            os.path.join("/opt", "splunk-deployment", "_disable_kvstore"),
-            os.path.join(os.environ['SPLUNK_HOME'])
-        )
-        init_helpers.splunk_clean_kvstore()
-
-    if not splunk_components["web"]:
-        init_helpers.copy_etc_tree(
-            os.path.join("/opt", "splunk-deployment", "_disable_web"),
-            os.path.join(os.environ['SPLUNK_HOME'])
-        )
-    else:
-        prefix = os.environ.get("INIT_WEB_SETTINGS_PREFIX")
-        if prefix:
-            init_helpers.set_web_prefix(prefix)
-        init_helpers.set_login_content("Roles:<br/><ul><li>" + "</li><li>".join(roles) + "</li></ul>")
-
-    if not splunk_components["indexing"]:
-        init_helpers.copy_etc_tree(
-            os.path.join("/opt", "splunk-deployment", "_disable_indexing"),
+            os.path.join("/opt", "splunk-deployment", "_enable_forward_index"),
             os.path.join(os.environ['SPLUNK_HOME']),
             {
                 "@INDEX_DISCOVERY_MASTER_URI@": os.environ.get("INIT_INDEX_DISCOVERY_MASTER_URI", "https://cluster-master:8089"),
@@ -115,32 +80,29 @@ def before_start(roles, dependencies, splunk_components):
             }
         )
 
-    if not splunk_components["dmc"]:
-        init_helpers.copy_etc_tree(
-            os.path.join("/opt", "splunk-deployment", "_disable_dmc"),
-            os.path.join(os.environ['SPLUNK_HOME'])
-        )
-
     for dependency in dependencies:
         url, role = dependency
         init_helpers.wait_dependency(url, role)
 
-    server_name = os.environ.get("INIT_SERVER_GENERAL_SERVERNAME", socket.getfqdn())
-    if server_name:
-        init_helpers.set_server_name(server_name)
+    # Allow to set any configurations with this
+    for env, val in os.environ.iteritems():
+        if env.startswith("INIT_CONF__"):
+            parts = env.split("__")
+            conf_file = None
+            if len(parts) == 4:
+                conf_file = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", parts[1] + ".conf")
+                parts = parts[2:]
+            else:
+                conf_file = os.path.join(os.environ["SPLUNK_HOME"], "etc", "apps", parts[1], "local", parts[2] + ".conf")
+                parts = parts[3:]
+            conf = splunk.clilib.cli_common.readConfFile(conf_file) if os.path.exists(conf_file) else {}
+            conf.setdefault(parts[0], {})[parts[1]] = val
+            init_helpers.write_conf_file(conf_file, conf)
 
-    default_host = os.environ.get("INIT_INPUTS_DEFAULT_HOST", socket.getfqdn())
-    if default_host:
-        init_helpers.set_default_host(default_host)
 
-
-def after_start(roles, dependencies, splunk_components):
+def after_start(roles, dependencies):
     init_consul.wait_consul()
     init_consul.register_splunkd_service(roles)
-    if splunk_components["web"]:
-        init_consul.register_splunkweb_service(roles)
-    if splunk_components["kvstore"]:
-        init_consul.register_kvstore_service(roles)
 
     for role in roles:
         module = modules.get(role.upper())

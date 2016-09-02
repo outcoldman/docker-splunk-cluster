@@ -5,12 +5,6 @@ import init_helpers
 
 def configurations():
     return {
-        "components": {
-            "kvstore": True,
-            "web": True,
-            "indexing": False,
-            "dmc": False
-        },
         "dependencies": [
             (os.environ.get("INIT_CLUSTERING_CLUSTER_MASTER", "https://cluster-master:8089"), "cluster_master")
         ]

@@ -12,17 +12,6 @@ def before_start():
     add_licenses()
 
 
-def configurations():
-    return {
-        "components": {
-            "kvstore": False,
-            "web": False,
-            "indexing": False,
-            "dmc": False
-        }
-    }
-
-
 def substitution():
     return {
         "@GENERAL_PASS_4_SYMM_KEY@": os.environ.get("INIT_GENERAL_PASS_4_SYMM_KEY", "general-changeme")

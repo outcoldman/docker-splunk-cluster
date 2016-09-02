@@ -6,17 +6,6 @@ import init_consul
 import init_helpers
 
 
-def configurations():
-    return {
-        "components": {
-            "kvstore": False,
-            "web": True,
-            "indexing": False,
-            "dmc": False
-        }
-    }
-
-
 def substitution():
     return {
         "@DEPLOYMENT_PASS_4_SYMM_KEY@": os.environ.get("INIT_DEPLOYMENT_PASS_4_SYMM_KEY", "deployment-changeme"),

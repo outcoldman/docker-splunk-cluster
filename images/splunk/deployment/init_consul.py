@@ -63,28 +63,6 @@ def register_splunkd_service(tags):
     }])
 
 
-def register_splunkweb_service(tags):
-    register_service({
-        "Name": "splunkweb",
-        "Tags": tags,
-        "Port": 8000,
-    }, checks=[{
-            "HTTP": "http://127.0.0.1:8000/robots.txt",
-            "Interval": "60s"
-    }])
-
-
-def register_kvstore_service(tags):
-    register_service({
-        "Name": "kvstore",
-        "Tags": tags,
-        "Port": 8191, 
-    }, checks=[{
-        "TCP": "127.0.0.1:8191",
-        "Interval": "60s"
-    }])
-
-
 def register_service(service, checks=None):
     """
     Register local Service

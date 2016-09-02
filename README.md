@@ -89,15 +89,9 @@ cluster initialization.
     - `deployment_server`
     - `deployment_client`
 
-- `INIT_KVSTORE_ENABLED` - force to enable/disable KVStore.
-- `INIT_WEB_ENABLED` - force to enable/disable Web.
-- `INIT_INDEXING_ENABLED` - force to enable/disable Indexing.
-- `INIT_DMC` - force to enable/disable DMC app.
-- `INIT_WEB_SETTINGS_PREFIX` - set prefix for Web.
+- `INIT_FORWARD_INDEX` - force to enable/disable Indexing.
 - `INIT_INDEX_DISCOVERY_MASTER_URI` - sets uri to Cluster Master with enabled Index Discovery. When indexing is off. Defaults to `https://cluster-master:8089`.
 - `INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY` - set index discovery `pass4SymmKey`. When indexing is off. Defaults to `indexdiscovery-changeme`.
-- `INIT_SERVER_GENERAL_SERVERNAME` - change server name under general
-- `INIT_INPUTS_DEFAULT_HOST` - change inputs default host
 
 Consul related variables
 
@@ -109,31 +103,17 @@ Consul related variables
 ##### License Master
 
 - Add licenses to the pool if it will find any `*.lic` files under `/opt/splunk-deployment/`.
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
 
 - `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
 - `INIT_WAIT_LICENSE` - wait for license files under `/opt/splunk-deployment/licenses`. Defaults to `False`.
 
 ##### License Slave
 
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
-
 - `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
 - `INIT_LICENSE_MASTER` - uri to License Master. Defaults to `https://license-master:8089`.
 
 
 ##### Cluster Master
-
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
 
 - Sets `repFactor = auto` for all default indexes. This configuration will be deployed to indexers using `master-apps` folder.
 - Sets up index discovery.
@@ -147,11 +127,6 @@ Consul related variables
 
 ##### Cluster Search Head
 
-- Require KVStore.
-- Require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
-
 - Sets clustering `mode = searchhead`.
 
 - `INIT_CLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Indexing Cluster. Defaults to `clustering-changeme`.
@@ -161,11 +136,6 @@ Before starting Splunk after applying configuration changes waits for the `clust
 role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 
 ##### Cluster Slave
-
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Require Indexing.
-- Does not require DMC app.
 
 - Sets clustering `mode = slave`.
 - Enables listening on `9997` for forwarded data.
@@ -178,20 +148,10 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 
 ##### SHC Deployer
 
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
-
 - `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
 - `INIT_SHCLUSTERING_SHCLUSTER_LABEL` - set shcluster label. Defaults to `shcluster`.
 
 ##### SHC Member
-
-- Require KVStore.
-- Require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
 
 - `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
 - `INIT_SHCLUSTERING_MGMT_URI` - set management uri of current server. Defaults to `https://$HOSTNAME:8089`.
@@ -208,22 +168,12 @@ does bootstrapping of SHC, if larger - adds itself to Search Head Cluster.
 
 ##### SHC Deployer Client
 
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
-
 - `INIT_SHCLUSTERING_SHCDEPLOYER` - set uri to Search Head Cluster deployer. Defaults to `https://shc-deployer:8089`.
 
 Before starting Splunk after applying configuration changes waits for the
 Search Head Cluster Deployer defined with `INIT_SHCLUSTERING_SHCDEPLOYER`.
 
 ##### Data collector
-
-- Does not require KVStore.
-- Does not require Splunk Web.
-- Does not require Indexing.
-- Does not require DMC app.
 
 - `INIT_ADD_UDP_PORT` - add listening on port defined with this variable, sets `connection_host = dns`,
     `index = splunkcluster` and register this as a service in consul with name `syslog`.

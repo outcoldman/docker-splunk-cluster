@@ -53,54 +53,6 @@ def copy_etc_tree(src, dst, subs=None):
                 shutil.copyfile(srcname, dstname)
 
 
-def splunk_stop():
-    """
-    Stop splunk
-    """
-    splunk_execute(["stop"])
-
-
-def splunk_start():
-    """
-    Start splunk
-    """
-    splunk_execute(["start"])
-
-
-def splunk_clean_all():
-    """
-    Clean local data
-    """
-    splunk_execute([
-        "clean",
-        "all",
-        "-f"
-    ])
-
-
-def splunk_clean_kvstore():
-    """
-    Clean local kvstore
-    """
-    splunk_execute([
-        "clean",
-        "kvstore",
-        "-local",
-        "-f"
-    ])
-
-
-def splunk_clean_index():
-    """
-    Clean local indexes
-    """
-    splunk_execute([
-        "clean",
-        "eventdata",
-        "-f"
-    ])
-
-
 def splunk_execute(args):
     """
     Execute splunk with arguments
@@ -161,36 +113,13 @@ def wait_local():
     exit(1)
 
 
-def set_web_prefix(prefix):
-    web_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "web.conf")
-    conf = splunk.clilib.cli_common.readConfFile(web_conf) if os.path.exists(web_conf) else {}
-    conf.setdefault("settings", {})["root_endpoint"] = prefix
-    write_conf_file(web_conf, conf)
-
-def set_login_content(prefix):
-    web_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "web.conf")
-    conf = splunk.clilib.cli_common.readConfFile(web_conf) if os.path.exists(web_conf) else {}
-    conf["settings"] = {
-        "login_content": prefix
-    }
-    write_conf_file(web_conf, conf)
-
-def set_server_name(server_name):
-    system_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "system.conf")
-    conf = splunk.clilib.cli_common.readConfFile(system_conf) if os.path.exists(system_conf) else {}
-    conf.setdefault("general", {})["serverName"] = server_name
-    write_conf_file(system_conf, conf)
-
-def set_default_host(default_host):
-    inputs_conf = os.path.join(os.environ["SPLUNK_HOME"], "etc", "system", "local", "inputs.conf")
-    conf = splunk.clilib.cli_common.readConfFile(inputs_conf) if os.path.exists(inputs_conf) else {}
-    conf.setdefault("default", {})["host"] = default_host
-    write_conf_file(inputs_conf, conf)
-
 def write_conf_file(conffile, conf):
     """
     Just clean empty stanzas
     """
     if "default" in conf and not conf["default"]:
         del conf["default"]
+    folder = os.path.dirname(conffile)
+    if not os.path.isdir(folder):
+        mkdir_p(folder)
     splunk.clilib.cli_common.writeConfFile(conffile, conf)

@@ -2,16 +2,6 @@ import os
 import socket
 
 
-def configurations():
-    return {
-        "components": {
-            "kvstore": False,
-            "web": False,
-            "indexing": False,
-            "dmc": False
-        }
-    }
-
 def substitution():
     return {
         "@DEPLOYMENT_PASS_4_SYMM_KEY@": os.environ.get("INIT_DEPLOYMENT_PASS_4_SYMM_KEY", "deployment-changeme"),
