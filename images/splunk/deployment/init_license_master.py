@@ -7,7 +7,7 @@ import init_helpers
 import splunk.util
 
 
-def before_stop():
+def before_start():
     # Automatically add license
     add_licenses()
 

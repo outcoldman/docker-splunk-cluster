@@ -42,7 +42,7 @@ def before_start():
         conf["serverClass:data-collector-hec"] = {
             "whitelist.0": os.environ.get("INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR", "data-collector-hec")
         }
-        splunk.clilib.cli_common.writeConfFile(serverclass_conf, conf)
+        init_helpers.write_conf_file(serverclass_conf, conf)
 
         splunk_httpinput_local = os.path.join(os.environ["SPLUNK_HOME"], "etc", "deployment-apps", "splunk_httpinput", "local")
         splunk_httpinput_inputs_conf = os.path.join(splunk_httpinput_local, "inputs.conf")
@@ -59,7 +59,7 @@ def before_start():
             }
 
         init_helpers.mkdir_p(splunk_httpinput_local)
-        splunk.clilib.cli_common.writeConfFile(splunk_httpinput_inputs_conf, conf)
+        init_helpers.write_conf_file(splunk_httpinput_inputs_conf, conf)
 
 
 def after_start():

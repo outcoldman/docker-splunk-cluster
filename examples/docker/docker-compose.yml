@@ -2,13 +2,13 @@ version: '2'
 services:
 
   cluster-master:
-    image: outcoldman/docker-splunk-cluster:latest
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster:${SPLUNK_CLUSTER_VERSION}
     container_name: cluster-master
     hostname: cluster-master
     depends_on:
       - consul
     environment: 
-      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
+      - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
       - SPLUNK_ROLES=cluster_master,shc_deployer,dmc,deployment_server
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_REPLICATION_FACTOR=3
@@ -18,6 +18,7 @@ services:
       - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_WEB_ENABLED=true
       - INIT_KVSTORE_ENABLED=false
+      - INIT_DMC_ENABLED=true
       - INIT_SERVER_GENERAL_SERVERNAME=cluster-master
       - INIT_INPUTS_DEFAULT_HOST=cluster-master
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
@@ -47,16 +48,15 @@ services:
         max-file: "5"
 
   shc-member:
-    image: outcoldman/docker-splunk-cluster:latest
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster:${SPLUNK_CLUSTER_VERSION}
     depends_on:
-      - shc-deployer
       - cluster-master
       - consul
     environment: 
-      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
+      - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
       - SPLUNK_ROLES=shc_member,shc_deployer_client,cluster_searchhead
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
-      - INIT_SHCLUSTERING_SHCDEPLOYER=https://shc-deployer:8089
+      - INIT_SHCLUSTERING_SHCDEPLOYER=https://cluster-master:8089
       - INIT_SHCLUSTERING_REPLICATION_FACTOR=3
       - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
@@ -80,15 +80,20 @@ services:
         max-file: "5"
 
   cluster-slave:
-    image: outcoldman/docker-splunk-cluster:latest
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster:${SPLUNK_CLUSTER_VERSION}
     depends_on:
       - cluster-master
       - consul
     environment: 
-      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
-      - SPLUNK_ROLES=cluster_slave
+      - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
+      - SPLUNK_ROLES=cluster_slave,deployment_client,data_collector
       - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
       - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
+      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
+      - INIT_DEPLOYMENT_CLIENT_NAME=data-collector-hec
+      - INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=cluster-master:8089
+      - INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR=true
+      - INIT_ADD_UDP_PORT=1514
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -105,7 +110,7 @@ services:
         max-file: "5"
 
   consul:
-    image: outcoldman/docker-splunk-cluster:latest-consul
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster-consul:${SPLUNK_CLUSTER_VERSION}
     container_name: consul
     hostname: consul
     restart: always
@@ -123,7 +128,7 @@ services:
       - CONSUL_BOOTSTRAP_EXPECT=1
       - CONSUL_JOIN=consul
       - CONSUL_ADVERTISE_INTERFACE=eth0
-      - SYSLOG_SERVER=data-collector-internal
+      - SYSLOG_SERVER=cluster-slave
       - SYSLOG_PORT=1514
       - SYSLOG_PROTO=udp
     logging:
@@ -132,73 +137,18 @@ services:
         max-size: "1m"
         max-file: "5"
 
-  data-collector-internal:
-    image: outcoldman/docker-splunk-cluster:latest
-    environment: 
-      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
-      - SPLUNK_ROLES=data_collector,deployment_client
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_ADD_UDP_PORT=1514
-      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
-      - INIT_DEPLOYMENT_CLIENT_NAME=data-collector-internal
-      - INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=deployment-server:8089
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth0
-    networks:
-      splunk:
-        aliases:
-          - data-collector-internal
-    labels:
-      splunk.cluster: "data-collector-internal"
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
-  data-collector-hec:
-    image: outcoldman/docker-splunk-cluster:latest
-    environment: 
-      - SPLUNK_START_ARGS="--accept-license --answer-yes --no-prompt"
-      - SPLUNK_ROLES=data_collector,deployment_client
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
-      - INIT_DEPLOYMENT_CLIENT_NAME=data-collector-hec
-      - INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=deployment-server:8089
-      - INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR=true
-      - CONSUL_HOST=consul
-      - CONSUL_DC=dc
-      - CONSUL_DOMAIN=splunk
-      - CONSUL_ADVERTISE_INTERFACE=eth0
-    networks:
-      - splunk
-    labels:
-      splunk.cluster: "data-collector-hec"
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "5"
-
   lb:
-    image: outcoldman/docker-splunk-cluster:latest-lb
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster-lb:${SPLUNK_CLUSTER_VERSION}
     container_name: lb
     hostname: lb
     depends_on:
       - consul
-      - data-collector-internal
     environment: 
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
       - CONSUL_ADVERTISE_INTERFACE=eth0
-      - SYSLOG_SERVER=data-collector-internal
+      - SYSLOG_SERVER=cluster-slave
       - SYSLOG_PORT=1514
       - SYSLOG_PROTO=udp
     labels:
@@ -211,9 +161,6 @@ services:
     ports:
       - 8000:8000
       - 8010:8010
-      - 8020:8020
-      - 8030:8030
-      - 8040:8040
       - 8500:8500
       - 8089:8089
       - 8088:8088

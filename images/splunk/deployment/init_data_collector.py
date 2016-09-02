@@ -25,9 +25,9 @@ def before_start():
         conf = splunk.clilib.cli_common.readConfFile(inputs_conf) if os.path.exists(inputs_conf) else {}
         conf["udp://" + udp_port] = {
             "connection_host": "dns",
-            "index": "splunkcluster"
+            "index": os.environ.get("INIT_ADD_UDP_PORT_INDEX", "splunkcluster")
         }
-        splunk.clilib.cli_common.writeConfFile(inputs_conf, conf)
+        init_helpers.write_conf_file(inputs_conf, conf)
 
 
 def after_start():
@@ -39,15 +39,9 @@ def after_start():
             "Port": int(udp_port)
         })
     public_hec = splunk.util.normalizeBoolean(os.environ.get("INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR", False))
-    internal_hec = splunk.util.normalizeBoolean(os.environ.get("INIT_REGISTER_INTERNAL_HTTP_EVENT_COLLECTOR", False))
-    if public_hec or internal_hec:
-        tags = []
-        if public_hec:
-            tags.append("public")
-        if internal_hec:
-            tags.append("internal")
+    if public_hec:
         init_consul.register_service({
             "Name": "http_event_collector",
             "Port": 8088,
-            "Tags": tags
+            "Tags": ["public"]
         })

@@ -47,11 +47,11 @@ This repository contains set of examples how to run Splunk Enterprise cluster in
 including Search Head Cluster and Indexing Cluster.
 
 The main purpose of this repository is to show how to automate Splunk Cluster deployment.
-Below you can find examples how to setup Cluster on Docker, Swarm Mode (1.12-rc4 has issues), Kubernetes (TODO).
+Below you can find examples how to setup Cluster on Docker, Swarm Mode, Kubernetes (TODO).
 
 ### Version
 
-Based on `outcoldman/splunk:6.4.3`.
+Based on
 
 * Version: `6.4.3`
 * Build: `b03109c2bad4`
@@ -60,7 +60,7 @@ Based on `outcoldman/splunk:6.4.3`.
 
 ### Cluster-aware image
 
-These examples depend on the custom image, which you can build using `./images/splunk` folder.
+These examples depend on the custom images, which you can build using `./images/` folder.
 This image is based on `outcoldman/splunk` and includes several changes:
 
 - Adds consul binary to the image. We use consul for service discovery.
@@ -85,7 +85,9 @@ cluster initialization.
     - `shc_deployer`
     - `shc_member`
     - `shc_deployer_client`
-    - `hw_forwarder`
+    - `data_collector`
+    - `deployment_server`
+    - `deployment_client`
 
 - `INIT_KVSTORE_ENABLED` - force to enable/disable KVStore.
 - `INIT_WEB_ENABLED` - force to enable/disable Web.
@@ -94,6 +96,8 @@ cluster initialization.
 - `INIT_WEB_SETTINGS_PREFIX` - set prefix for Web.
 - `INIT_INDEX_DISCOVERY_MASTER_URI` - sets uri to Cluster Master with enabled Index Discovery. When indexing is off. Defaults to `https://cluster-master:8089`.
 - `INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY` - set index discovery `pass4SymmKey`. When indexing is off. Defaults to `indexdiscovery-changeme`.
+- `INIT_SERVER_GENERAL_SERVERNAME` - change server name under general
+- `INIT_INPUTS_DEFAULT_HOST` - change inputs default host
 
 Consul related variables
 
@@ -168,9 +172,9 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 
 - `INIT_CLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Indexing Cluster. Defaults to `clustering-changeme`.
 - `INIT_CLUSTERING_CLUSTER_MASTER` - set cluster master uri. Defaults to `https://cluster-master:8089`.
-
-Before starting Splunk after applying configuration changes waits for the `cluster_master` 
-role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
+- `INIT_CLUSTERING_REGISTER_REPLICATION_ADDRESS` - set replication address, defaults to `socket.getfqdn()`.
+- `INIT_CLUSTERING_REGISTER_FORWARDER_ADDRESS`  - set forwarder address, defaults to `socket.getfqdn()`.
+- `INIT_CLUSTERING_REGISTER_SEARCH_ADDRESS`  - set search address, defaults to `socket.getfqdn()`.
 
 ##### SHC Deployer
 
@@ -180,6 +184,7 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 - Does not require DMC app.
 
 - `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
+- `INIT_SHCLUSTERING_SHCLUSTER_LABEL` - set shcluster label. Defaults to `shcluster`.
 
 ##### SHC Member
 
@@ -193,6 +198,7 @@ role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
 - `INIT_SHCLUSTERING_REPLICATION_FACTOR` - set replication factor. Defaults to `3`.
 - `INIT_SHCLUSTERING_SHCLUSTER_LABEL` - set Search Head Cluster label. Defaults to `shcluster`.
 - `INIT_SHCLUSTER_AUTOBOOTSTRAP` - auto bootstrap Search Head Cluster on this number of members. Defaults to `3`.
+- `INIT_SHCLUSTERING_HOSTNAME` - set hostname of current member for SHC membership. Defaults to `socket.getfqdn()`.
 
 After start this role also is trying to auto bootstrap Search Head Cluster or add itself
 to existing Search Head Cluster. Using consul every SHC Member elects itself as a Consul Leader on the Consul Service
@@ -212,7 +218,7 @@ does bootstrapping of SHC, if larger - adds itself to Search Head Cluster.
 Before starting Splunk after applying configuration changes waits for the
 Search Head Cluster Deployer defined with `INIT_SHCLUSTERING_SHCDEPLOYER`.
 
-##### HW Forwarder
+##### Data collector
 
 - Does not require KVStore.
 - Does not require Splunk Web.
@@ -221,15 +227,9 @@ Search Head Cluster Deployer defined with `INIT_SHCLUSTERING_SHCDEPLOYER`.
 
 - `INIT_ADD_UDP_PORT` - add listening on port defined with this variable, sets `connection_host = dns`,
     `index = splunkcluster` and register this as a service in consul with name `syslog`.
-
-##### DMC
-
-- Does not require KVStore.
-- Require Splunk Web.
-- Does not require Indexing.
-- Require DMC app.
-
-> TODO: dashboards are not configured
+- `INIT_ADD_UDP_PORT_INDEX` - specify index for upd port. Defaults to `splunkcluster`.
+- `INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR` - register this instance as public HEC service in consul,
+    will be published with load balancer.
 
 #### Files listing in image
 
@@ -265,10 +265,8 @@ Ports:
 
 - `8000` - load balances between SHC servers, using cookie `SERVERID`.
 - `8010` - redirects to Cluster Master.
-- `8020` - redirects to DMC.
-- `8030` - redirects to License Master.
-- `8040` - redirects to Deployment Server.
 - `8050` - redirects to consul.
+- `8088` - lb for public HEC
 
 > NOTE: consul is not secured by default.
 
@@ -317,7 +315,7 @@ Watch for status of deployment:
 You can scale up later with
 
 ```
-docker-compose -f docker-compose.yml scale cluster-slave=8 shc-member=5
+docker-compose -f docker-compose.yml scale cluster-slave=5
 ```
 
 To clean use
@@ -336,7 +334,7 @@ Build images.
 make build-lm
 ```
 
-Deploy instances. This command copies license files to the license master node, deploys 3 SHC Members and 4 Indexer Cluster Slaves.
+Deploy instances. This command copies license files to the license master node, deploys 3 SHC Members and 3 Indexer Cluster Slaves.
 Command will fail if you don't have license files in current folder.
 
 ```
@@ -354,7 +352,7 @@ Watch for status of deployment:
 You can scale up later with
 
 ```
-docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=8 shc-member=5
+docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=5
 ```
 
 To clean use
@@ -365,7 +363,10 @@ make clean-lm
 
 #### On docker swarm
 
-> NOTE: Splunk Enterprise License is required
+> NOTE1: Splunk Enterprise License is required
+> NOTE2: You have to use docker registry to be sure that each instance will have access to images built by you.
+> Or you can publish image on every swarm instance manually. Specify path to your registry with
+> environment variable `SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER`
 
 ```
 cd ./examples/docker-swarm-mode
@@ -373,8 +374,8 @@ cd ./examples/docker-swarm-mode
 
 Copy Splunk Enterprise license (if you have) in this folder (make sure that license files have extension `*.lic`).
 
-Prepare swarm. This command will create 4 docker-machine instances in VirtualBox.
-One instance is a docker registry. Another 3 will be part of Swarm cluster.
+Prepare swarm. This command will create 5 docker-machine instances in VirtualBox. 3 of them will be used in Docker Swarm
+right away, 2 can be added later
 
 ```
 make setup
@@ -384,25 +385,56 @@ If you want to use custom build, use next command.
 Build images. This command will build images and publish to local registry.
 
 ```
-make build
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make build
+```
+
+Login to your registry
+
+```
+docker login registry.yourcompany.com
+```
+
+Publish images to your registry
+
+```
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make push
 ```
 
 Deploy cluster.
 
 ```
-make deploy
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make deploy
 ```
 
-To clean splunk cluster use
+After SHC will be bootstrapped, if you will change password to `changed` you can invoke next command to automatically
+add them as search peers to the Cluster Master (if you want to setup DMC)
 
 ```
-make clean-all
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make demo-add-peers
 ```
 
-To kill all docker machines use
+You can also add two more nodes to the Swarm cluster by invoking
 
 ```
-make setup-clean
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make setup-add-2
+```
+
+To clean splunk cluster (including volumes) use
+
+```
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make clean-all
+```
+
+To clean images (in case if you want to rebuild)
+
+```
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make clean-images
+```
+
+To remove all docker machines use
+
+```
+SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make setup-clean
 ```
 
 #### On kubernetes
