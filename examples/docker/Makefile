@@ -19,7 +19,7 @@ deploy-lm:
 	@echo "Verifying that at least one *.lic file exist"
 	ls *.lic 1> /dev/null 2>&1;
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml up -d cluster-master
-	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=splunk.cluster=cluster-master):/opt/splunk-deployment/licenses/
+	ls *.lic | xargs -I @ docker cp @ $$(docker ps -qa --filter=label=splunk.cluster=cluster-master):/opt/splunk-licenses/
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml up -d
 	docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=3 shc-member=3
 	@echo "Use 'docker-compose -f docker-compose.yml -f docker-compose.license-master.yml logs -f cluster-master' to wait for Initialized cluster-master as Cluster Master"

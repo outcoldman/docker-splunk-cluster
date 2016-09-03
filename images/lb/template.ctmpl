@@ -18,16 +18,8 @@ listen http-in-shc
     bind :8000
     balance roundrobin
     cookie SERVERID insert indirect nocache
-    {{range service "SHC_MEMBER.splunkd"}}
-    server {{.Node}} {{.Address}}:8000 check cookie {{.Node}}{{end}}
-
-# Cluster Master
-
-listen http-in-cluster-master
-    log global
-    bind :8010
-    {{range service "CLUSTER_MASTER.splunkd"}}
-    server {{.Node}} {{.Address}}:8000{{end}}
+    {{range service "shc_member"}}
+    server {{.Node}} {{.Address}}:{{.Port}} check cookie {{.Node}}{{end}}
 
 # Consul
 
@@ -43,5 +35,5 @@ listen http-in-shc
     mode tcp
     bind :8088
     balance roundrobin
-    {{range service "public.http_event_collector"}}
+    {{range service "http_event_collector"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}

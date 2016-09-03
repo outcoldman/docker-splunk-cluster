@@ -54,7 +54,7 @@ RUN apt-get install -y wget sudo unzip \
     && chown -R ${SPLUNK_USER}:${SPLUNK_GROUP} ${SPLUNK_BACKUP_DEFAULT_ETC} \
     && rm -rf /var/lib/apt/lists/*
 
-COPY deployment /opt/splunk-deployment/
+COPY configure.py /opt/splunk/bin/configure.py
 COPY indexes.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/indexes.conf
 COPY inputs.conf ${SPLUNK_BACKUP_DEFAULT_ETC}/etc/system/local/inputs.conf
 COPY consul.sh ${SPLUNK_HOME}/bin/scripts/consul.sh
@@ -62,7 +62,7 @@ COPY consul.json ${SPLUNK_HOME}/bin/scripts/consul.json
 COPY entrypoint.sh /sbin/entrypoint.sh
 RUN chmod +x /sbin/entrypoint.sh
 RUN chmod +x ${SPLUNK_HOME}/bin/scripts/consul.sh
-RUN mkdir -p /opt/splunk-deployment/licenses
+RUN mkdir -p /opt/splunk-licenses/
 
 WORKDIR /opt/splunk
 

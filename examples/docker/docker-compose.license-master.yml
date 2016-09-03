@@ -3,18 +3,20 @@ services:
 
   cluster-master:
     environment: 
-      - SPLUNK_ROLES=cluster_master,license_master,shc_deployer,dmc,deployment_server
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
+      - SPLUNK_ROLES=license_master,deployment_server
       - INIT_WAIT_LICENSE=true
+      - CONF__server__general__pass4SymmKey=general-changeme
 
   shc-member:
     environment: 
-      - SPLUNK_ROLES=shc_member,shc_deployer_client,license_slave,cluster_searchhead
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://cluster-master:8089
+      - SPLUNK_ROLES=shc_member
+      - INIT_WAIT_SPLUNK_license_master=https://cluster-master:8089,license_master
+      - CONF__server__general__pass4SymmKey=general-changeme
+      - CONF__server__license__master_uri=https://cluster-master:8089
 
   cluster-slave:
     environment: 
-      - SPLUNK_ROLES=cluster_slave,license_slave,deployment_client,data_collector
-      - INIT_GENERAL_PASS_4_SYMM_KEY=general-changeme
-      - INIT_LICENSE_MASTER=https://cluster-master:8089
+      - SPLUNK_ROLES=data_collector
+      - INIT_WAIT_SPLUNK_license_master=https://cluster-master:8089,license_master
+      - CONF__server__general__pass4SymmKey=general-changeme
+      - CONF__server__license__master_uri=https://cluster-master:8089

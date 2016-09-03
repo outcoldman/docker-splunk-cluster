@@ -9,31 +9,63 @@ services:
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
-      - SPLUNK_ROLES=cluster_master,shc_deployer,dmc,deployment_server
-      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
-      - INIT_CLUSTERING_REPLICATION_FACTOR=3
-      - INIT_CLUSTERING_SEARCH_FACTOR=2
-      - INIT_CLUSTERING_CLUSTER_LABEL=cluster
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
-      - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
-      - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
-      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
-      - INIT_DEPLOYMENT_REQUIRE_AUTHENTICATION=true
-      - INIT_DEPLOYMENT_CROSS_SERVER_CHECKSUM=true
-      - INIT_DEPLOYMENT_SERVER_PUBLIC=true
+      - SPLUNK_ROLES=deployment_server
       - INIT_ENABLE_HTTP_EVENT_COLLECTOR=true
       - INIT_HTTP_EVENT_COLLECTOR_TOKEN=EF211A51-D6AC-4045-8CD6-F730939AC518
       - INIT_SERVERCLASS_HTTP_EVENT_COLLECTOR=data-collector-hec
-      - INIT_CONF__web__settings__login_content=Cluster Master
-      - INIT_CONF__server__general__serverName=cluster-master
-      - INIT_CONF__inputs__default__host=cluster-master
-      - INIT_CONF__server__kvstore__disabled=true
+      - CONF__inputs__default__host=cluster-master
+      - CONF__inputs__http__useDeploymentServer=true
+      - CONF__outputs__indexAndForward__index=false
+      - CONF__outputs__indexer_discovery:search_head_peers__master_uri=https://cluster-master:8089
+      - CONF__outputs__indexer_discovery:search_head_peers__pass4SymmKey=indexdiscovery-changeme
+      - CONF__outputs__tcpout:splunk_search_head_peers_group__autoLB=true
+      - CONF__outputs__tcpout:splunk_search_head_peers_group__indexerDiscovery=search_head_peers
+      - CONF__outputs__tcpout__defaultGroup=splunk_search_head_peers_group
+      - CONF__outputs__tcpout__forwardedindex.filter.disable =true
+      - CONF__outputs__tcpout__indexAndForward=false
+      - CONF__restmap__broker:broker__requireAuthentication=true
+      - CONF__server__clustering__cluster_label=cluster
+      - CONF__server__clustering__mode=master
+      - CONF__server__clustering__pass4SymmKey=clustering-changeme
+      - CONF__server__clustering__replication_factor=3
+      - CONF__server__clustering__search_factor=2
+      - CONF__server__deployment__pass4SymmKey=deployment-changeme
+      - CONF__server__general__serverName=cluster-master
+      - CONF__server__indexer_discovery__pass4SymmKey=indexdiscovery-changeme
+      - CONF__server__kvstore__disabled=true
+      - CONF__server__shclustering__pass4SymmKey=shclustering-changeme
+      - CONF__server__shclustering__shcluster_label=shcluster
+      - CONF__serverclass__global__crossServerChecksum=true
+      - CONF__serverclass__serverClass:data-collector-hec:app:splunk_httpinput__restartSplunkd=true
+      - CONF__serverclass__serverClass:data-collector-hec__whitelist.0=data-collector-hec
+      - CONF__web__settings__login_content=Cluster Master
+      - CONF__etc/master-apps/cluster-deployment__indexes__main__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes__history__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes__summary__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes__splunklogger__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes___internal__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes___audit__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes___thefishbucket__repFactor=auto
+      - CONF__etc/master-apps/cluster-deployment__indexes__splunkcluster__repFactor=auto
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__dedicatedIoThreads=2
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__maxThreads=0
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__allowSslRenegotiation=true
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__disabled=false
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__useDeploymentServer=false
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__port=8088
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__allowSslCompression=true
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__sslVersions=*,-ssl2
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__enableSSL=true
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http__maxSockets=0
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http://default__token=EF211A51-D6AC-4045-8CD6-F730939AC518
+      - CONF__etc/deployment-apps/splunk_httpinput__inputs__http://default__disabled=False
       - INIT_FORWARD_INDEX=true
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
       - CONSUL_ADVERTISE_INTERFACE=eth0
+    ports:
+      - 9000:8000
     labels:
       splunk.cluster: "cluster-master"
     networks:
@@ -54,20 +86,36 @@ services:
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
-      - SPLUNK_ROLES=shc_member,shc_deployer_client,cluster_searchhead
+      - SPLUNK_ROLES=shc_member
       - INIT_SHCLUSTERING_SHCDEPLOYER=https://cluster-master:8089
       - INIT_SHCLUSTERING_PASS_4_SYMM_KEY=shclustering-changeme
       - INIT_SHCLUSTERING_REPLICATION_FACTOR=3
       - INIT_SHCLUSTERING_SHCLUSTER_LABEL=shcluster
-      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
-      - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
-      - INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY=indexdiscovery-changeme
-      - INIT_INDEX_DISCOVERY_MASTER_URI=https://cluster-master:8089
       - INIT_SHCLUSTER_AUTOBOOTSTRAP=3
-      - INIT_CONF__server__shclustering__election_timeout_ms=5000
-      - INIT_CONF__web__settings__login_content=SHC Member
-      - INIT_CONF__splunk_management_console__app__install__state=disabled
-      - INIT_FORWARD_INDEX=true
+      - INIT_WAIT_SPLUNK_cluster_master=https://cluster-master:8089,cluster_master
+      - INIT_CONSUL_SERVICE_shc_member=shc_member,8000,TCP,127.0.0.1:8000,5s
+      - CONF__etc/apps/splunk_management_console__app__install__state=disabled
+      - CONF__outputs__indexAndForward__index=false
+      - CONF__outputs__indexer_discovery:search_head_peers__master_uri=https://cluster-master:8089
+      - CONF__outputs__indexer_discovery:search_head_peers__pass4SymmKey=indexdiscovery-changeme
+      - CONF__outputs__tcpout:splunk_search_head_peers_group__autoLB=true
+      - CONF__outputs__tcpout:splunk_search_head_peers_group__indexerDiscovery=search_head_peers
+      - CONF__outputs__tcpout__defaultGroup=splunk_search_head_peers_group
+      - CONF__outputs__tcpout__forwardedindex.filter.disable =true
+      - CONF__outputs__tcpout__indexAndForward=false
+      - CONF__server__clustering__master_uri=https://cluster-master:8089
+      - CONF__server__clustering__mode=searchhead
+      - CONF__server__clustering__pass4SymmKey=clustering-changeme
+      - CONF__server__deployment__pass4SymmKey=deployment-changeme
+      - CONF__server__replication_port://9889__disabled=false
+      - CONF__server__shclustering__conf_deploy_fetch_url=https://cluster-master:8089
+      - CONF__server__shclustering__disabled=false
+      - CONF__server__shclustering__election_timeout_ms=5000
+      - CONF__server__shclustering__mgmt_uri=ENV(https://$$HOSTNAME:8089)
+      - CONF__server__shclustering__pass4SymmKey=shclustering-changeme
+      - CONF__server__shclustering__replication_factor=3
+      - CONF__server__shclustering__shcluster_label=shcluster
+      - CONF__web__settings__login_content=SHC Member
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -90,17 +138,25 @@ services:
       - consul
     environment: 
       - SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt
-      - SPLUNK_ROLES=cluster_slave,deployment_client,data_collector
-      - INIT_CLUSTERING_PASS_4_SYMM_KEY=clustering-changeme
-      - INIT_CLUSTERING_CLUSTER_MASTER=https://cluster-master:8089
-      - INIT_DEPLOYMENT_PASS_4_SYMM_KEY=deployment-changeme
-      - INIT_DEPLOYMENT_CLIENT_NAME=data-collector-hec
-      - INIT_DEPLOYMENT_CLIENT_DEPLOYMENT_SERVER=cluster-master:8089
+      - SPLUNK_ROLES=data_collector
       - INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR=true
-      - INIT_ADD_UDP_PORT=1514
-      - INIT_CONF__splunk_management_console__app__install__state=disabled
-      - INIT_CONF__server__kvstore__disabled=true
-      - INIT_CONF__web__settings__startwebserver=false
+      - INIT_WAIT_SPLUNK_cluster_master=https://cluster-master:8089,cluster_master
+      - INIT_CONSUL_SERVICE_http_event_collector=http_event_collector,8088,TCP,127.0.0.1:8088,5s
+      - INIT_CONSUL_SERVICE_syslog=syslog,1514
+      - CONF__etc/apps/splunk_management_console__app__install__state=disabled
+      - CONF__server__kvstore__disabled=true
+      - CONF__server__deployment__pass4SymmKey=deployment-changeme
+      - CONF__deploymentclient__deployment-client__disabled=false
+      - CONF__deploymentclient__deployment-client__clientName=data-collector-hec
+      - CONF__deploymentclient__target-broker:deploymentServer__targetUri=cluster-master:8089
+      - CONF__web__settings__startwebserver=false
+      - CONF__server__clustering__mode=slave
+      - CONF__server__clustering__pass4SymmKey=clustering-changeme
+      - CONF__server__clustering__master_uri=https://cluster-master:8089
+      - CONF__server__replication_port://9888__disabled=false
+      - CONF__inputs__splunktcp://9997__disabled=false
+      - CONF__inputs__udp://1514__connection_host =dns
+      - CONF__inputs__udp://1514__index=splunkcluster
       - CONSUL_HOST=consul
       - CONSUL_DC=dc
       - CONSUL_DOMAIN=splunk
@@ -167,9 +223,7 @@ services:
     restart: always
     ports:
       - 8000:8000
-      - 8010:8010
       - 8500:8500
-      - 8089:8089
       - 8088:8088
     logging:
       driver: "json-file"

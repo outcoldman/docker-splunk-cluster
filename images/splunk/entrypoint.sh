@@ -61,14 +61,14 @@ EOF
 
   if [[ $__configured == "false" ]]; then
     sudo -HEu ${SPLUNK_USER} ${SPLUNK_HOME}/bin/splunk version ${SPLUNK_START_ARGS}
-    sudo -HEu ${SPLUNK_USER} sh -c "${SPLUNK_HOME}/bin/splunk cmd python /opt/splunk-deployment/init.py before_start"
+    sudo -HEu ${SPLUNK_USER} sh -c "${SPLUNK_HOME}/bin/splunk cmd python /opt/splunk/bin/configure.py before_start"
   fi
 
   sudo -HEu ${SPLUNK_USER} ${SPLUNK_HOME}/bin/splunk start ${SPLUNK_START_ARGS}
   trap "sudo -HEu ${SPLUNK_USER} ${SPLUNK_HOME}/bin/splunk stop" SIGINT SIGTERM EXIT
 
   if [[ $__configured == "false" ]]; then
-    sudo -HEu ${SPLUNK_USER} sh -c "${SPLUNK_HOME}/bin/splunk cmd python /opt/splunk-deployment/init.py after_start"
+    sudo -HEu ${SPLUNK_USER} sh -c "${SPLUNK_HOME}/bin/splunk cmd python /opt/splunk/bin/configure.py after_start"
   fi
 
   sudo -HEu ${SPLUNK_USER} tail -n 0 -f ${SPLUNK_HOME}/var/log/splunk/splunkd_stderr.log &
