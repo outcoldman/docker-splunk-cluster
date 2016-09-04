@@ -92,7 +92,7 @@ deploy-cluster-master:
 		--env "CONF__server__shclustering__pass4SymmKey=shclustering-changeme" \
 		--env "CONF__server__shclustering__shcluster_label=shcluster" \
 		--env "CONF__serverclass__global__crossServerChecksum=true" \
-		--env "CONF__serverclass__serverClass:data-collector-hec:app:splunk_httpinput__restartSplunkd=true" \
+		--env "CONF__serverclass__serverClass:data-collector-hec:app:splunk_httpinput__restartIfNeeded=true" \
 		--env "CONF__serverclass__serverClass:data-collector-hec__whitelist.0=data-collector-hec" \
 		--env "CONF__web__settings__login_content=Cluster Master" \
 		--env "CONF__etc/master-apps/cluster-deployment__indexes__main__repFactor=auto" \
@@ -137,7 +137,7 @@ deploy-shc-member:
 			--env "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master kv_store license_master" \
 			--env "SPLUNK_BEFORE_START_CMD_3=cmd python /opt/splunk/bin/splunk_setup.py --configure" \
 			--env "SPLUNK_BEFORE_START_CMD_4=edit user admin -password changed -role admin -auth admin:changeme" \
-			--env "SPLUNK_BEFORE_START_CMD_5=cmd python -c 'open(\"/opt/splunk/etc/.ui_login\").close()'" \
+			--env "SPLUNK_BEFORE_START_CMD_5=cmd python -c 'open(\"/opt/splunk/etc/.ui_login\", \"a\").close()'" \
 			--env "SPLUNK_CMD_1=cmd python /opt/splunk/bin/splunk_setup.py --shc-autobootstrap 3 'https://shc-member-0$${number}:8089' admin changed 'https://cluster-master:8089/servicesNS/nobody/system/storage/collections/data/service_discovery' service_discovery_user service_discovery_password" \
 			--env "SPLUNK_CMD_2=status" \
 			--env "SPLUNK_HEALTHCHECK_SPLUNKD=https://127.0.0.1:8089" \
