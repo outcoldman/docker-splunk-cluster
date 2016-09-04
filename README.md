@@ -3,23 +3,6 @@
 - [Introduction](#introduction)
     - [Version](#version)
 - [How it works](#how-it-works)
-    - [Cluster-aware image](#cluster-aware-image)
-        - [Configuration](#configuration)
-            - [License Master](#license-master)
-            - [License Slave](#license-slave)
-            - [Cluster Master](#cluster-master)
-            - [Cluster Search Head](#cluster-search-head)
-            - [Cluster Slave](#cluster-slave)
-            - [SHC Deployer](#shc-deployer)
-            - [SHC Member](#shc-member)
-            - [SHC Deployer Client](#shc-deployer-client)
-            - [HW Forwarder](#hw-forwarder)
-            - [DMC](#dmc)
-        - [Files listing in image](#files-listing-in-image)
-            - `/`
-            - `/deployment`
-    - [Load balancing image](#load-balancing-image)
-    - [Consul image](#consul-image)
 - [Use it](#use-it)
     - [Deploy](#deploy)
         - [On docker instance](#on-docker-instance)
@@ -58,171 +41,28 @@ Based on
 
 ## How it works
 
-### Cluster-aware image
+These examples depend on the custom image, which you can build using `./splunk-cluster/` folder.
+This image differs from `outcoldman/splunk` with just one change.
+It has special `splunk_setup.py` script, which allows to pre-configure Splunk.
+This script supports several commands:
 
-These examples depend on the custom images, which you can build using `./images/` folder.
-This image is based on `outcoldman/splunk` and includes several changes:
-
-- Adds consul binary to the image. We use consul for service discovery.
-- Adds Splunk `splunkcluster` index, which will be used to send here all internal
-    logs about the cluster from `consul` and `load balancer`.
-- Adds deployment python scripts to `/opt/splunk-deployment`, which are executed
-    only on first start by using `SPLUNK_CMD` as `cmd python /opt/splunk-deployment/init.py`.
-- Register `consul` as scripted input, so it always will be launched with `splunkd`.
-    All logs from `consul` go to the `splunkcluster` index.
-
-> NOTE: do not override `SPLUNK_CMD` when you start this image, this will disable
-cluster initialization.
-
-#### Configuration
-
-- `SPLUNK_ROLES` define the roles for the container. Use comma to define multiple roles (which are compatible).
-    - `license_master`
-    - `license_slave`
-    - `cluster_master`
-    - `cluster_searchhead`
-    - `cluster_slave`
-    - `shc_deployer`
-    - `shc_member`
-    - `shc_deployer_client`
-    - `data_collector`
-    - `deployment_server`
-    - `deployment_client`
-
-- `INIT_FORWARD_INDEX` - force to enable/disable Indexing.
-- `INIT_INDEX_DISCOVERY_MASTER_URI` - sets uri to Cluster Master with enabled Index Discovery. When indexing is off. Defaults to `https://cluster-master:8089`.
-- `INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY` - set index discovery `pass4SymmKey`. When indexing is off. Defaults to `indexdiscovery-changeme`.
-
-Consul related variables
-
-- `CONSUL_HOST` - which consul host to join. Defaults to `consul`.
-- `CONSUL_ADVERTISE_INTERFACE` - which interface IP to use for advertising.
-- `CONSUL_DC` - name of data center. Defaults to `dc`.
-- `CONSUL_DOMAIN` - consul default domain. Defaults to `splunk`.
-
-##### License Master
-
-- Add licenses to the pool if it will find any `*.lic` files under `/opt/splunk-deployment/`.
-
-- `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
-- `INIT_WAIT_LICENSE` - wait for license files under `/opt/splunk-deployment/licenses`. Defaults to `False`.
-
-##### License Slave
-
-- `INIT_GENERAL_PASS_4_SYMM_KEY` - set `pass4SymmKey` for the License Cluster. Defaults to `general-changeme`.
-- `INIT_LICENSE_MASTER` - uri to License Master. Defaults to `https://license-master:8089`.
-
-
-##### Cluster Master
-
-- Sets `repFactor = auto` for all default indexes. This configuration will be deployed to indexers using `master-apps` folder.
-- Sets up index discovery.
-- Sets clustering `mode = master`.
-
-- `INIT_CLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Indexing Cluster. Defaults to `clustering-changeme`.
-- `INIT_CLUSTERING_REPLICATION_FACTOR` - set replication factor. Defaults to `1`.
-- `INIT_CLUSTERING_SEARCH_FACTOR` - set search factor. Defaults to `1`.
-- `INIT_CLUSTERING_CLUSTER_LABEL` - set cluster label. Defaults to `cluster`.
-- `INIT_INDEX_DISCOVERY_PASS_4_SYMM_KEY` - set index discovery `pass4SymmKey`. Defaults to "indexdiscovery-changeme".
-
-##### Cluster Search Head
-
-- Sets clustering `mode = searchhead`.
-
-- `INIT_CLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Indexing Cluster. Defaults to `clustering-changeme`.
-- `INIT_CLUSTERING_CLUSTER_MASTER` - set cluster master uri. Defaults to `https://cluster-master:8089`.
-
-Before starting Splunk after applying configuration changes waits for the `cluster_master` 
-role in cluster master defined with `INIT_CLUSTERING_CLUSTER_MASTER`.
-
-##### Cluster Slave
-
-- Sets clustering `mode = slave`.
-- Enables listening on `9997` for forwarded data.
-
-- `INIT_CLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Indexing Cluster. Defaults to `clustering-changeme`.
-- `INIT_CLUSTERING_CLUSTER_MASTER` - set cluster master uri. Defaults to `https://cluster-master:8089`.
-- `INIT_CLUSTERING_REGISTER_REPLICATION_ADDRESS` - set replication address, defaults to `socket.getfqdn()`.
-- `INIT_CLUSTERING_REGISTER_FORWARDER_ADDRESS`  - set forwarder address, defaults to `socket.getfqdn()`.
-- `INIT_CLUSTERING_REGISTER_SEARCH_ADDRESS`  - set search address, defaults to `socket.getfqdn()`.
-
-##### SHC Deployer
-
-- `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
-- `INIT_SHCLUSTERING_SHCLUSTER_LABEL` - set shcluster label. Defaults to `shcluster`.
-
-##### SHC Member
-
-- `INIT_SHCLUSTERING_PASS_4_SYMM_KEY` - set `pass4SymmKey` for Search Head Cluster. Defaults to `shclustering-changeme`.
-- `INIT_SHCLUSTERING_MGMT_URI` - set management uri of current server. Defaults to `https://$HOSTNAME:8089`.
-- `INIT_SHCLUSTERING_REPLICATION_FACTOR` - set replication factor. Defaults to `3`.
-- `INIT_SHCLUSTERING_SHCLUSTER_LABEL` - set Search Head Cluster label. Defaults to `shcluster`.
-- `INIT_SHCLUSTER_AUTOBOOTSTRAP` - auto bootstrap Search Head Cluster on this number of members. Defaults to `3`.
-- `INIT_SHCLUSTERING_HOSTNAME` - set hostname of current member for SHC membership. Defaults to `socket.getfqdn()`.
-
-After start this role also is trying to auto bootstrap Search Head Cluster or add itself
-to existing Search Head Cluster. Using consul every SHC Member elects itself as a Consul Leader on the Consul Service
-(not related to Search Head Cluster Captain), adds itself to the list of SHC Members. Checks the current list, if 
-number of members is less than `INIT_SHCLUSTER_AUTOBOOTSTRAP` - just release leadership on Consul Service. If equal to -
-does bootstrapping of SHC, if larger - adds itself to Search Head Cluster.
-
-##### SHC Deployer Client
-
-- `INIT_SHCLUSTERING_SHCDEPLOYER` - set uri to Search Head Cluster deployer. Defaults to `https://shc-deployer:8089`.
-
-Before starting Splunk after applying configuration changes waits for the
-Search Head Cluster Deployer defined with `INIT_SHCLUSTERING_SHCDEPLOYER`.
-
-##### Data collector
-
-- `INIT_ADD_UDP_PORT` - add listening on port defined with this variable, sets `connection_host = dns`,
-    `index = splunkcluster` and register this as a service in consul with name `syslog`.
-- `INIT_ADD_UDP_PORT_INDEX` - specify index for upd port. Defaults to `splunkcluster`.
-- `INIT_REGISTER_PUBLIC_HTTP_EVENT_COLLECTOR` - register this instance as public HEC service in consul,
-    will be published with load balancer.
-
-#### Files listing in image
-
-##### /
-
-- `consul.sh` - script for scripted input, rule how we launch `consul`. Important, that
-    we persist consul data in `"$SPLUNK_HOME/var/consul"`.
-- `consul_check.sh` - check script used by consul to verify that `splunkd` is alive.
-- `indexes.conf` - define `splunkcluster` index, which will be used to send logs from
-    `consul` and `load balancer`.
-- `inputs.conf` - definition of scripted input, which will allow us to launch `consul`
-    with `splunkd`.
-
-##### /deployment
-
-- `init.py` - startup script, which will be used to initialize the cluster. Invoked with
-    cmd python /opt/splunk-deployment/init.py`.
-- `init_consul.py` - helper functions to work with local consul.
-- `init_helpers.py` - helper functions.
-- `init_<role>.py` - rules how to initialize the role.
-- `_disable_<what>/` - set of default configuration files which allow to disable
-    this feature. For example `_disable_indexing` contains configuration files to
-    forward events to the indexing cluster using index discovery.
-- `<ROLE>` - set of configurations rules which will be applied to defined role.
-
-### Load balancing image
-
-Folder `lb` is building HTTP load balancing image. It is based on `consul`, `consul-template`
-and `haproxy`. `consul-template` listen for services updates in the consul and
-regenerates the `haproxy` configuration.
-
-Ports:
-
-- `8000` - load balances between SHC servers, using cookie `SERVERID`.
-- `8010` - redirects to Cluster Master.
-- `8050` - redirects to consul.
-- `8088` - lb for public HEC
-
-> NOTE: consul is not secured by default.
-
-### Consul image
-
-Image based on `consul:v0.6.4`.
+- `--wait-splunk schema://hostname:mgmt_port [re_server_role1] [re_server_role2] ... [re_server_roleN]`.
+    This command will wait till specified url will reply and that `/services/server/info` will have
+    all roles defined in `server_role` list.
+- `--configure` - using environment variables append specific configurations. Environment variables can be
+    defined in format 
+    - `CONF[__{app_location}]__{conf}__{stanza}__{key}={value}` - this will append `key` with `value` under `stanza` in `conf` file
+        in `local` folder under `app_location`. If `app_location` is not specified will be written in `local` folder under `$SPLUNK_HOME/etc/system/`.
+    - `CONF[__{app_location}]__meta__{stanza}__{key}={value}` - metadata information will be written in `local.meta` file in
+        `metadata` folder under `app_location`. If `app_location` is not specified will be written in `metadata` folder under `$SPLUNK_HOME/etc/system/`.
+- `--add-licenses {folder}` - all licenses will be added from specified location. If no `*.lic` files can be find in this folder - 
+    script will wait for them.
+- `--shc-autobootstrap {number_of_expected_shc_members} {mgmt_uri} {local_user} {local_password} {service_discovery_url} {service_discovery_user} {service_discovery_password}`.
+    Automatically bootstrap SHC when this will be `{number_of_expected_shc_members}` number of SHC members. Script will use KVStore endpoint
+    specified under `{service_discovery_url}` to discover other members. `{mgmt_uri}` will be used to bootstrap members.
+- `--healthcheck` - using environment variables `SPLUNK_HEALTHCHECK_{health_check_name}=schema://hostname:port` you can define
+    how container will check that current container is healthy. For example to check that splunkd web server is responsive
+    you can use `SPLUNK_HEALTHCHECK_SPLUNKD=https://127.0.0.1:8089`.
 
 ## Use it
 
@@ -240,75 +80,32 @@ This folder has two docker-compose files. One which does not require License Mas
 `docker-compose.yml` and second is an extension for the first one, which adds License Master node. `Makefile` in this folder
 deals with how `docker-compose` needs to be invoked.
 
-##### If you do not have a License
+If you have Splunk Enterprise License copy it in this folder (make sure that license files have extension `*.lic`) and use
+all commands with `-lm` suffix.
 
-Build images.
+Build image.
 
 ```
-make build
+make build[-lm]
 ```
 
 Deploy instances.
 
 ```
-make deploy
+make deploy[-lm]
 ```
 
 Watch for status of deployment:
-- Open `http://<docker>:8500` to watch for all green services and hosts.
 - Watch for `docker-compose logs -f shc-member` for the line `Successfully bootstrapped this node as the captain with the given servers.`.
     This will mean that SHC is bootstrapped.
-- Open Cluster Master web on `http://<docker>:8010` and check `Indexer Clustering: Master Node` page
+- Open Cluster Master web on `http://<docker>:9000` and check `Indexer Clustering: Master Node` page
     that Indexes are replicated and ready for search.
-- Open SHC on `http://<docker>:8000` and check that you see logs from all instances `index="_internal" | stats count by host`.
-
-You can scale up later with
-
-```
-docker-compose -f docker-compose.yml scale cluster-slave=5
-```
+- Open SHC member and check that you see logs from all instances `index="_internal" | stats count by host`.
 
 To clean use
 
 ```
-make clean
-```
-
-##### If you have a Splunk Enterprise License
-
-If you have Splunk Enterprise License copy it in this folder (make sure that license files have extension `*.lic`).
-
-Build images.
-
-```
-make build-lm
-```
-
-Deploy instances. This command copies license files to the license master node, deploys 3 SHC Members and 3 Indexer Cluster Slaves.
-Command will fail if you don't have license files in current folder.
-
-```
-make deploy-lm
-```
-
-Watch for status of deployment:
-- Open `http://<docker>:8500` to watch for all green services and hosts.
-- Watch for `docker-compose logs -f shc-member` for the line `Successfully bootstrapped this node as the captain with the given servers.`.
-    This will mean that SHC is bootstrapped.
-- Open Cluster Master web on `http://<docker>:8010` and check `Indexer Clustering: Master Node` page
-    that Indexes are replicated and ready for search.
-- Open SHC on `http://<docker>:8000` and check that you see logs from all instances `index="_internal" | stats count by host`.
-
-You can scale up later with
-
-```
-docker-compose -f docker-compose.yml -f docker-compose.license-master.yml scale cluster-slave=5
-```
-
-To clean use
-
-```
-make clean-lm
+make clean[-lm]
 ```
 
 #### On docker swarm
@@ -331,11 +128,10 @@ right away, 2 can be added later
 make setup
 ```
 
-If you want to use custom build, use next command. 
-Build images. This command will build images and publish to local registry.
+To use Swarm you need to have access to the Docker registry, specify path to registry and path to image using
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make build
+export SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER
 ```
 
 Login to your registry
@@ -344,47 +140,52 @@ Login to your registry
 docker login registry.yourcompany.com
 ```
 
-Publish images to your registry
+Build image.
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make push
+make build push
+```
+
+Publish image to your registry
+
+```
+make push
 ```
 
 Deploy cluster.
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make deploy
+make deploy
 ```
 
-After SHC will be bootstrapped, if you will change password to `changed` you can invoke next command to automatically
-add them as search peers to the Cluster Master (if you want to setup DMC)
+You can add two more nodes to the Swarm cluster by invoking
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make demo-add-peers
-```
-
-You can also add two more nodes to the Swarm cluster by invoking
-
-```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make setup-add-2
+make setup-add-2
 ```
 
 To clean splunk cluster (including volumes) use
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make clean-all
+make clean-all
 ```
 
 To clean images (in case if you want to rebuild)
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make clean-images
+make clean-images
+```
+
+To download image on each docker instance
+
+```
+make download-image
 ```
 
 To remove all docker machines use
 
 ```
-SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER make setup-clean
+make setup-clean
 ```
 
 #### On kubernetes
@@ -400,27 +201,3 @@ docker cp ~/Downloads/splunk_app_aws shc-deployer:/opt/splunk/etc/shcluster/apps
 docker exec shc-deployer entrypoint.sh chown -R splunk:splunk /opt/splunk/etc/shcluster/apps/
 docker exec shc-deployer entrypoint.sh splunk apply shcluster-bundle -restart true --answer-yes -target https://$(docker ps --filter=label=splunk.cluster=shc-member -q | head -1):8089 -auth admin:changeme
 ```
-
-## TODO:
-
-- [ ] Secret storage for getting secrets (currently everything is in plain text from env variables). Might use Vault from HashiCorp.
-- [ ] DMC Server (with all configurations setup automatically)
-- [ ] Deployment Server listen on 8089, HAProxy forwards TCP, should we implement it better?
-- [ ] Encrypt consul communication
-- [ ] CA Authority. Do not skip certificate verification.
-- [ ] Check if there are better way to configure SSO (including trustedIP)
-- [ ] On SHC we should log IP addresses with "tools.proxy.on = True"
-- [ ] Upgrade to consul-template 0.16.0 rtm.
-- [ ] Secure by default `8500`.
-- [ ] SHC Autobootstrap should support removed members.
-- [ ] Possible issues with permissions.
-- [ ] Verify that LB works while adding/removing members
-- [ ] LDAP
-
-## Used tools
-
-- [consul](https://www.consul.io)
-- [consul-template](https://github.com/hashicorp/consul-template)
-- [haproxy](http://www.haproxy.org)
-- [supervisor](http://supervisord.org)
-- [supervisor-logging](https://github.com/infoxchange/supervisor-logging)

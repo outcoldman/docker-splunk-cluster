@@ -3,20 +3,29 @@ services:
 
   cluster-master:
     environment: 
-      - SPLUNK_ROLES=license_master,deployment_server
-      - INIT_WAIT_LICENSE=true
-      - CONF__server__general__pass4SymmKey=general-changeme
+      - "SPLUNK_BEFORE_START_CMD_3=cmd python /opt/splunk/bin/splunk_setup.py --add-licenses /opt/"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
 
-  shc-member:
+  shc-member-01:
     environment: 
-      - SPLUNK_ROLES=shc_member
-      - INIT_WAIT_SPLUNK_license_master=https://cluster-master:8089,license_master
-      - CONF__server__general__pass4SymmKey=general-changeme
-      - CONF__server__license__master_uri=https://cluster-master:8089
+      - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master kv_store license_master"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
+      - "CONF__server__license__master_uri=https://cluster-master:8089"
+
+  shc-member-02:
+    environment: 
+      - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master kv_store license_master"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
+      - "CONF__server__license__master_uri=https://cluster-master:8089"
+
+  shc-member-03:
+    environment: 
+      - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master kv_store license_master"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
+      - "CONF__server__license__master_uri=https://cluster-master:8089"
 
   cluster-slave:
     environment: 
-      - SPLUNK_ROLES=data_collector
-      - INIT_WAIT_SPLUNK_license_master=https://cluster-master:8089,license_master
-      - CONF__server__general__pass4SymmKey=general-changeme
-      - CONF__server__license__master_uri=https://cluster-master:8089
+      - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
+      - "CONF__server__license__master_uri=https://cluster-master:8089"
