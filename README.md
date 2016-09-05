@@ -206,14 +206,13 @@ docker exec $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster
 
 ```
 docker service create \
-    --constraint "node.role != manager" \
     --name cadvisor \
     --mode global \
     --container-label splunk.cluster=cadvisor \
     --label splunk.cluster=cadvisor \
     --network splunk \
     --with-registry-auth \
-    --publish 8080 \
+    --publish 8080:8080 \
     --mount "type=bind,source=/,target=/rootfs,readonly=true" \
     --mount "type=bind,source=/var/run,target=/var/run,readonly=false" \
     --mount "type=bind,source=/sys,target=/sys,readonly=true" \
