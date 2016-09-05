@@ -64,8 +64,6 @@ deploy-cluster-master:
 		--env "SPLUNK_CMD_5=add search-server shc-member-02:8089 -remoteUsername admin -remotePassword changed -auth admin:changeme" \
 		--env "SPLUNK_CMD_6=add search-server shc-member-03:8089 -remoteUsername admin -remotePassword changed -auth admin:changeme" \
 		--env "SPLUNK_CMD_7=status" \
-		--env "SPLUNK_HEALTHCHECK_SPLUNKD=https://127.0.0.1:8089" \
-		--env "SPLUNK_HEALTHCHECK_SPLUNKWEB=http://127.0.0.1:8000" \
 		--env "CONF__inputs__default__host=cluster-master" \
 		--env "CONF__inputs__http__useDeploymentServer=true" \
 		--env "CONF__outputs__indexAndForward__index=false" \
@@ -92,7 +90,7 @@ deploy-cluster-master:
 		--env "CONF__server__shclustering__pass4SymmKey=shclustering-changeme" \
 		--env "CONF__server__shclustering__shcluster_label=shcluster" \
 		--env "CONF__serverclass__global__crossServerChecksum=true" \
-		--env "CONF__serverclass__serverClass:data-collector-hec:app:splunk_httpinput__restartIfNeeded=true" \
+		--env "CONF__serverclass__serverClass:data-collector-hec:app:splunk_httpinput__restartSplunkd=true" \
 		--env "CONF__serverclass__serverClass:data-collector-hec__whitelist.0=data-collector-hec" \
 		--env "CONF__web__settings__login_content=Cluster Master" \
 		--env "CONF__etc/master-apps/cluster-deployment__indexes__main__repFactor=auto" \
@@ -140,8 +138,6 @@ deploy-shc-member:
 			--env "SPLUNK_BEFORE_START_CMD_5=cmd python -c 'open(\"/opt/splunk/etc/.ui_login\", \"a\").close()'" \
 			--env "SPLUNK_CMD_1=cmd python /opt/splunk/bin/splunk_setup.py --shc-autobootstrap 3 'https://shc-member-0$${number}:8089' admin changed 'https://cluster-master:8089/servicesNS/nobody/system/storage/collections/data/service_discovery' service_discovery_user service_discovery_password" \
 			--env "SPLUNK_CMD_2=status" \
-			--env "SPLUNK_HEALTHCHECK_SPLUNKD=https://127.0.0.1:8089" \
-			--env "SPLUNK_HEALTHCHECK_SPLUNKWEB=http://127.0.0.1:8000" \
 			--env "CONF__etc/apps/splunk_management_console__app__install__state=disabled" \
 			--env "CONF__outputs__indexAndForward__index=false" \
 			--env "CONF__outputs__indexer_discovery:search_head_peers__master_uri=https://cluster-master:8089" \
@@ -187,8 +183,6 @@ deploy-cluster-slave:
 		--env "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master" \
 		--env "SPLUNK_BEFORE_START_CMD_3=cmd python /opt/splunk/bin/splunk_setup.py --configure" \
 		--env "SPLUNK_CMD_1=status" \
-		--env "SPLUNK_HEALTHCHECK_SPLUNKD=https://127.0.0.1:8089" \
-		--env "SPLUNK_HEALTHCHECK_HEC=https://127.0.0.1:8088" \
 		--env "CONF__etc/apps/splunk_management_console__app__install__state=disabled" \
 		--env "CONF__server__general__pass4SymmKey=general-changeme" \
 		--env "CONF__server__license__master_uri=https://cluster-master:8089" \

@@ -188,6 +188,44 @@ To remove all docker machines use
 make setup-clean
 ```
 
+To distribute applications with Cluster Master to the Indexers
+
+```
+docker cp my_app $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master):/opt/splunk/etc/master-apps/
+docker exec $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master) entrypoint.sh chown -R splunk:splunk /opt/splunk/etc/master-apps/my_app
+docker exec $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master) entrypoint.sh splunk apply cluster-bundle --auth admin:changeme --answer-yes
+```
+
+To distribute application with SHC Deployer to SHC Members
+
+```
+docker cp my_app $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master):/opt/splunk/etc/shcluster/apps/
+docker exec $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master) entrypoint.sh chown -R splunk:splunk /opt/splunk/etc/shcluster/apps/my_app
+docker exec $(docker ps -qa --filter=label=com.docker.swarm.service.name=cluster-master) entrypoint.sh splunk apply shcluster-bundle -restart true --answer-yes -target https://shc-member-01:8089 -auth admin:changeme
+```
+
+```
+docker service create \
+    --constraint "node.role != manager" \
+    --name cadvisor \
+    --mode global \
+    --container-label splunk.cluster=cadvisor \
+    --label splunk.cluster=cadvisor \
+    --network splunk \
+    --with-registry-auth \
+    --publish 8080 \
+    --mount "type=bind,source=/,target=/rootfs,readonly=true" \
+    --mount "type=bind,source=/var/run,target=/var/run,readonly=false" \
+    --mount "type=bind,source=/sys,target=/sys,readonly=true" \
+    --mount "type=bind,source=/var/lib/docker/,target=/var/lib/docker/,readonly=true" \
+    $SPLUNK_CLUSTER_DOCKER_IMAGE_PATH/cadvisor \
+        -storage_driver=splunk \
+        -storage_driver_splunk_insecureskipverify=true \
+        -storage_driver_splunk_source=cadvisor \
+        -storage_driver_splunk_token=EF211A51-D6AC-4045-8CD6-F730939AC518 \
+        -storage_driver_splunk_url=https://cluster-slave:8088
+```
+
 #### On kubernetes
 
 > TODO

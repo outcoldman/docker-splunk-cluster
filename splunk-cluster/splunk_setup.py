@@ -29,8 +29,6 @@ def main():
         add_licenses(sys.argv[2])
     elif sys.argv[1] == "--shc-autobootstrap":
         shc_autobootstrap(int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8])
-    elif sys.argv[1] == "--healthcheck":
-        healthcheck()
     else:
         exit(1) 
 
@@ -211,18 +209,6 @@ def __splunk_execute(args):
     subprocess.check_call(splunk_args)
     sys.stdout.flush()
     sys.stderr.flush()
-
-
-def healthcheck():
-    for env, val in os.environ.iteritems():
-        if env.startswith("SPLUNK_HEALTHCHECK_"):
-            try:
-                response = requests.options(val, verify=False)
-                response.raise_for_status()
-            except requests.exceptions.RequestException as ex:
-                print "Health check %s failed. %s" % (val, str(ex))
-                exit(1)
-    exit(0)
 
 
 if __name__ == "__main__":

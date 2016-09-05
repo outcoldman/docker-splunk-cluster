@@ -53,5 +53,3 @@ VOLUME [ "/opt/splunk/etc", "/opt/splunk/var" ]
 
 ENTRYPOINT ["/sbin/entrypoint.sh"]
 CMD ["start-service"]
-
-HEALTHCHECK --interval=30s --timeout=5s --retries=10 CMD /opt/splunk/bin/splunk cmd python /opt/splunk/bin/splunk_setup.py --healthcheck
