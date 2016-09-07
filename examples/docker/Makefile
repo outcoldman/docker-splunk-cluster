@@ -31,7 +31,7 @@ clean:
 	docker-compose -f docker-compose.yml rm -v -f
 
 build:
-	cd ./../../splunk-cluster && docker build --build-arg SPLUNK_VERSION=$(SPLUNK_CLUSTER_VERSION) -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION) -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:latest .
+	cd ./../../splunk-cluster && docker build -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION) -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:latest .
 
 push: build
 	docker push $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION)

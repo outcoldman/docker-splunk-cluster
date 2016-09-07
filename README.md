@@ -66,6 +66,11 @@ This script supports several commands:
 
 ## Use it
 
+### Pre-requirement
+
+You need to have a base Splunk image, you can use [outcoldman/splunk](https://github.com/outcoldman/docker-splunk)
+as base image. Build it and tag it as `splunk:latest` on the machine where you will build this image.
+
 ### Deploy
 
 #### On docker instance
