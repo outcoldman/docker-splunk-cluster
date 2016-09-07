@@ -28,7 +28,7 @@ setup-remove-2:
 	-seq 4 5 | xargs -I @ bash -c 'eval $$(docker-machine env splunk0) && docker node rm splunk@'
 
 build:
-	cd ./../../splunk-cluster && docker build --build-arg SPLUNK_VERSION=$(SPLUNK_CLUSTER_VERSION) -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION) -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:latest .
+	cd ./../../splunk-cluster && docker build -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION) -t $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:latest .
 
 push:
 	docker push $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION)
