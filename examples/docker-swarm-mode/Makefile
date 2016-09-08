@@ -35,7 +35,14 @@ push:
 	docker push $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:latest
 
 download-image:
-	-seq 0 5 | xargs -P 6 -I @ bash -c 'eval $$(docker-machine env splunk@); docker pull $(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION)'
+	docker service create \
+		--mode global \
+		--name download-image \
+		--with-registry-auth \
+		$(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION) entrypoint.sh sleep infinity
+	sleep 5
+	while docker service ps download-image | grep Preparing 1>/dev/null 2>&1; do sleep 1; done
+	docker service rm download-image
 
 deploy-cluster-master:
 	ls *.lic 1> /dev/null 2>&1;
@@ -148,6 +155,7 @@ deploy-shc-member:
 			--env "CONF__outputs__tcpout__forwardedindex.filter.disable =true" \
 			--env "CONF__outputs__tcpout__indexAndForward=false" \
 			--env "CONF__server__general__pass4SymmKey=general-changeme" \
+			--env "CONF__server__general__serverName=shc-member-0$${number}" \
 			--env "CONF__server__license__master_uri=https://cluster-master:8089" \
 			--env "CONF__server__clustering__cluster_label=cluster" \
 			--env "CONF__server__clustering__master_uri=https://cluster-master:8089" \
@@ -163,48 +171,58 @@ deploy-shc-member:
 			--env "CONF__server__shclustering__replication_factor=3" \
 			--env "CONF__server__shclustering__shcluster_label=shcluster" \
 			--env "CONF__web__settings__login_content=SHC Member" \
+			--env "CONF__inputs__default__host=shc-member-0$${number}" \
 			$(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION); \
 	done
 
 deploy-cluster-slave:
-	docker service create \
-		--constraint "node.role != manager" \
-		--name cluster-slave \
-		--mode global \
-		--container-label splunk.cluster=cluster-slave \
-		--label splunk.cluster=cluster-slave \
-		--network splunk \
-		--mount "type=volume,source=cluster-slave-etc$(SALT),destination=/opt/splunk/etc" \
-		--mount "type=volume,source=cluster-slave-var$(SALT),destination=/opt/splunk/var" \
-		--with-registry-auth \
-		--publish 8088:8088 \
-		--env "SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt" \
-		--env "SPLUNK_BEFORE_START_CMD_1=version \$$SPLUNK_START_ARGS" \
-		--env "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master" \
-		--env "SPLUNK_BEFORE_START_CMD_3=cmd python /opt/splunk/bin/splunk_setup.py --configure" \
-		--env "SPLUNK_CMD_1=status" \
-		--env "CONF__etc/apps/splunk_management_console__app__install__state=disabled" \
-		--env "CONF__server__general__pass4SymmKey=general-changeme" \
-		--env "CONF__server__license__master_uri=https://cluster-master:8089" \
-		--env "CONF__server__kvstore__disabled=true" \
-		--env "CONF__web__settings__startwebserver=false" \
-		--env "CONF__server__clustering__cluster_label=cluster" \
-		--env "CONF__server__clustering__mode=slave" \
-		--env "CONF__server__clustering__pass4SymmKey=clustering-changeme" \
-		--env "CONF__server__clustering__master_uri=https://cluster-master:8089" \
-		--env "CONF__server__replication_port://9888__disabled=false" \
-		--env "CONF__inputs__splunktcp://9997__disabled=false" \
-		--env "CONF__server__deployment__pass4SymmKey=deployment-changeme" \
-		--env "CONF__deploymentclient__deployment-client__disabled=false" \
-		--env "CONF__deploymentclient__deployment-client__clientName=data-collector-hec" \
-		--env "CONF__deploymentclient__target-broker:deploymentServer__targetUri=cluster-master:8089" \
-		$(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION); \
+	for number in $(shell seq 3); do \
+		docker service create \
+			--constraint "node.labels.index == $${number}" \
+			--name cluster-slave-0$${number} \
+			--mode replicated \
+			--replicas 1 \
+			--container-label splunk.cluster=cluster-slave \
+			--label splunk.cluster=cluster-slave \
+			--network splunk \
+			--mount "type=volume,source=cluster-slave-etc$(SALT),destination=/opt/splunk/etc" \
+			--mount "type=volume,source=cluster-slave-var$(SALT),destination=/opt/splunk/var" \
+			--with-registry-auth \
+			--publish 808$${number}:8088 \
+			--env "SPLUNK_START_ARGS=--accept-license --answer-yes --no-prompt" \
+			--env "SPLUNK_BEFORE_START_CMD_1=version \$$SPLUNK_START_ARGS" \
+			--env "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master" \
+			--env "SPLUNK_BEFORE_START_CMD_3=cmd python /opt/splunk/bin/splunk_setup.py --configure" \
+			--env "SPLUNK_CMD_1=status" \
+			--env "CONF__etc/apps/splunk_management_console__app__install__state=disabled" \
+			--env "CONF__server__general__serverName=cluster-slave-0$${number}" \
+			--env "CONF__server__general__pass4SymmKey=general-changeme" \
+			--env "CONF__server__license__master_uri=https://cluster-master:8089" \
+			--env "CONF__server__kvstore__disabled=true" \
+			--env "CONF__web__settings__startwebserver=false" \
+			--env "CONF__server__clustering__cluster_label=cluster" \
+			--env "CONF__server__clustering__mode=slave" \
+			--env "CONF__server__clustering__pass4SymmKey=clustering-changeme" \
+			--env "CONF__server__clustering__master_uri=https://cluster-master:8089" \
+			--env "CONF__server__replication_port://9888__disabled=false" \
+			--env "CONF__server__clustering__register_register_replication_address=cluster-slave-0$${number}" \
+			--env "CONF__server__clustering__register_replication_address=cluster-slave-0$${number}" \
+			--env "CONF__server__clustering__register_search_address=cluster-slave-0$${number}" \
+			--env "CONF__inputs__splunktcp://9997__disabled=false" \
+			--env "CONF__inputs__default__host=cluster-slave-0$${number}" \
+			--env "CONF__server__deployment__pass4SymmKey=deployment-changeme" \
+			--env "CONF__deploymentclient__deployment-client__disabled=false" \
+			--env "CONF__deploymentclient__deployment-client__clientName=data-collector-hec" \
+			--env "CONF__deploymentclient__target-broker:deploymentServer__targetUri=cluster-master:8089" \
+			$(SPLUNK_CLUSTER_DOCKER_IMAGE_PATH)/splunk-cluster:$(SPLUNK_CLUSTER_VERSION); \
+	done
 
 deploy: deploy-cluster-master deploy-shc-member deploy-cluster-slave
 
 clean:
-	-docker service rm cluster-master cluster-slave
+	-docker service rm cluster-master
 	-seq 3 | xargs -P 3 -I @ docker service rm shc-member-0@
+	-seq 3 | xargs -P 3 -I @ docker service rm cluster-slave-0@
 
 clean-images:
 	-seq 0 5 | xargs -P 6 -I @ bash -c 'eval $$(docker-machine env splunk@); docker rmi -f $$(docker images -q);'

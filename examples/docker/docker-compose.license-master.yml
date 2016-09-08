@@ -24,7 +24,18 @@ services:
       - "CONF__server__general__pass4SymmKey=general-changeme"
       - "CONF__server__license__master_uri=https://cluster-master:8089"
 
-  cluster-slave:
+  cluster-slave-01:
+    environment: 
+      - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
+      - "CONF__server__license__master_uri=https://cluster-master:8089"
+
+  cluster-slave-02:
+    environment: 
+      - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master"
+      - "CONF__server__general__pass4SymmKey=general-changeme"
+      - "CONF__server__license__master_uri=https://cluster-master:8089"
+  cluster-slave-03:
     environment: 
       - "SPLUNK_BEFORE_START_CMD_2=cmd python /opt/splunk/bin/splunk_setup.py --wait-splunk 'https://cluster-master:8089' cluster_master license_master"
       - "CONF__server__general__pass4SymmKey=general-changeme"

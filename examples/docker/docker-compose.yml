@@ -71,14 +71,48 @@ services:
           - shc-member-03
     restart: always
 
-  cluster-slave:
+  cluster-slave-01:
     image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster:${SPLUNK_CLUSTER_VERSION}
+    container_name: cluster-slave-01
+    hostname: cluster-slave-01
     depends_on:
       - cluster-master
     env_file:
       - cluster-slave.env_file
     ports:
-      - 8088
+      - 8081:8088
+    labels:
+      splunk.cluster: "cluster-slave"
+    networks:
+      - splunk
+    restart: always
+
+  cluster-slave-02:
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster:${SPLUNK_CLUSTER_VERSION}
+    container_name: cluster-slave-02
+    hostname: cluster-slave-02
+    depends_on:
+      - cluster-master
+    env_file:
+      - cluster-slave.env_file
+    ports:
+      - 8082:8088
+    labels:
+      splunk.cluster: "cluster-slave"
+    networks:
+      - splunk
+    restart: always
+
+  cluster-slave-03:
+    image: ${SPLUNK_CLUSTER_DOCKER_IMAGE_PATH}/splunk-cluster:${SPLUNK_CLUSTER_VERSION}
+    container_name: cluster-slave-03
+    hostname: cluster-slave-03
+    depends_on:
+      - cluster-master
+    env_file:
+      - cluster-slave.env_file
+    ports:
+      - 8083:8088
     labels:
       splunk.cluster: "cluster-slave"
     networks:
