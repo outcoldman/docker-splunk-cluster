@@ -133,13 +133,15 @@ right away, 2 can be added later
 make setup
 ```
 
-To use Swarm you need to have access to the Docker registry, specify path to registry and path to image using
+To use Swarm you need to have access to the Docker registry, specify path to registry and path to image using.
+If you will not specify anything it will publish image to hub.docker.com/u/$USER/splunk-cluster (create your repo at
+hub.docker.com)
 
 ```
 export SPLUNK_CLUSTER_DOCKER_IMAGE_PATH=registry.yourcompany.com/$USER
 ```
 
-Login to your registry
+Login to your registry (if it is required)
 
 ```
 docker login registry.yourcompany.com
@@ -148,7 +150,7 @@ docker login registry.yourcompany.com
 Build image.
 
 ```
-make build push
+make build
 ```
 
 Publish image to your registry
